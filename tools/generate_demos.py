@@ -15,7 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
-CHUNK = 4  # rollouts per task
+CHUNK = 8  # rollouts per task; each task gets a fresh process (env.close() leaks ~1.5 GB)
 
 
 def sample(rng, pick0, place0, radius: float, min_gap: float = 0.16):
@@ -73,7 +73,7 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=200, help="successful demos wanted")
     ap.add_argument("--radius", type=float, default=0.10)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--workers", type=int, default=24)
+    ap.add_argument("--workers", type=int, default=8, help="each renders on the GPU (~2 GB RAM + a GL context); 14+ ran out of memory")
     ap.add_argument("--task", default="mug", help="key of handsim.sim.TASKS")
     ap.add_argument(
         "--around",
@@ -94,7 +94,7 @@ def main() -> None:
     # small chunks in a process pool: a worker that dies (seen with MuJoCo/EGL) loses only its chunk, which is
     # logged as failed, and the pool is rebuilt
     ctx = mp.get_context("spawn")
-    pool = ProcessPoolExecutor(args.workers, mp_context=ctx)
+    pool = ProcessPoolExecutor(args.workers, mp_context=ctx, max_tasks_per_child=1)
     while sum(r["success"] for r in rows) < args.n and len(rows) <= 20 * args.n:
         need = args.n - sum(r["success"] for r in rows)
         rate = max(0.2, np.mean([r["success"] for r in rows])) if rows else 0.5
@@ -113,11 +113,12 @@ def main() -> None:
             try:
                 rows += f.result()
             except Exception as e:  # noqa: BLE001
+                print(f"chunk {futs[f][0]}: {type(e).__name__}: {e}", flush=True)
                 broken = broken or isinstance(e, BrokenProcessPool)
                 rows += [{"seed": int(x), "success": False, "error": type(e).__name__} for x in futs[f]]
         if broken:
             pool.shutdown(cancel_futures=True)
-            pool = ProcessPoolExecutor(args.workers, mp_context=ctx)
+            pool = ProcessPoolExecutor(args.workers, mp_context=ctx, max_tasks_per_child=1)
         print(f"tried {len(rows)}, success {sum(r['success'] for r in rows)}", flush=True)
     pool.shutdown()
 
