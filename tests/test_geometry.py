@@ -100,3 +100,11 @@ def test_grasp_anchor_moves_tip_onto_rim():
     tip = np.array([0.1 + 0.07, -0.2, 0.43 + 0.12])  # 7 cm out, 12 cm up
     shift = grasp_anchor(tip, centre, 0.04, 0.084)
     assert np.allclose(tip + shift, [0.14, -0.2, 0.514])
+
+
+def test_grasp_anchor_avoids_arc():
+    centre = np.zeros(3)
+    tip = np.array([0.0, 0.07, 0.1])  # 90 deg, inside the arc
+    shift = grasp_anchor(tip, centre, 0.04, 0.08, no_grasp_arc=(75, 135))
+    a = np.degrees(np.arctan2(*(tip + shift)[1::-1]))
+    assert abs(a - 75) < 1e-6 and np.isclose(np.linalg.norm((tip + shift)[:2]), 0.04)

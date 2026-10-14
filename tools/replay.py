@@ -142,7 +142,9 @@ def main() -> None:
     g = int(np.argmax(closed)) if closed.any() else None
     anchor = np.zeros(3)
     if g is not None and not args.no_anchor:
-        anchor = grasp_anchor(pos_s[g], np.r_[pick_sim[:2], table_z], task.rim_radius, task.grasp_tip_z)
+        anchor = grasp_anchor(
+            pos_s[g], np.r_[pick_sim[:2], table_z], task.rim_radius, task.grasp_tip_z, task.no_grasp_arc
+        )
         pos_s = pos_s + anchor
     rot_s = T_st[:3, :3] @ rot
     _, q0 = eef_pose(obs)

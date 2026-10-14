@@ -25,11 +25,12 @@ class Task:
     language: str
     rim_radius: float  # m, pick object centre to the rim the fingers pinch (from the oracle sweeps)
     grasp_tip_z: float  # m, fingertip height above the pick object's base for a rim pinch (oracle)
+    no_grasp_arc: tuple[float, float] | None = None  # deg around the object (world frame) where a pinch fails
 
 
 TASKS = {
     "bowl": Task(9, "akita_black_bowl_1", "plate_1", "put the black bowl on the plate", 0.05, 0.029),
-    "mug": Task(72, "porcelain_mug_1", "plate_1", "put the white mug on the plate", 0.04, 0.084),
+    "mug": Task(72, "porcelain_mug_1", "plate_1", "put the white mug on the plate", 0.04, 0.084, (88, 127)),
 }
 DEFAULT_TASK = "mug"
 TASK_ID = TASKS[DEFAULT_TASK].task_id

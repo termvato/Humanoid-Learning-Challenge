@@ -174,14 +174,24 @@ def real_to_sim(pick_real: np.ndarray, place_real: np.ndarray, pick_sim: np.ndar
     return T
 
 
-def grasp_anchor(tip: np.ndarray, centre: np.ndarray, rim_radius: float, tip_z: float) -> np.ndarray:
+def grasp_anchor(
+    tip: np.ndarray,
+    centre: np.ndarray,
+    rim_radius: float,
+    tip_z: float,
+    no_grasp_arc: tuple[float, float] | None = None,
+) -> np.ndarray:
     """Constant shift that puts the fingertip midpoint at the grasp (tip, sim frame) on the pick object's rim,
     at the same angle around the object, at height tip_z above its base (centre = base xyz).
 
     Hand tracking is a few cm off, mostly as a constant bias, while a rim pinch needs about 1 cm. At the grasp the
     true relation is known (fingers on the rim), so shifting the whole track by this vector removes the bias and
-    keeps the carry and the place unchanged relative to each other."""
+    keeps the carry and the place unchanged relative to each other. A grasp angle inside no_grasp_arc (deg, e.g.
+    a mug handle) moves to the nearest end of the arc."""
     u = (tip - centre)[:2]
-    u = u / np.linalg.norm(u)
+    a = np.degrees(np.arctan2(u[1], u[0])) % 360
+    if no_grasp_arc is not None and no_grasp_arc[0] < a < no_grasp_arc[1]:
+        a = min(no_grasp_arc, key=lambda e: abs(e - a))
+    u = np.array([np.cos(np.radians(a)), np.sin(np.radians(a))])
     target = np.r_[centre[:2] + rim_radius * u, centre[2] + tip_z]
     return target - tip

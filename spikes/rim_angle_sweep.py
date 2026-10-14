@@ -13,6 +13,7 @@ from scipy.spatial.transform import Rotation as R
 from handsim.sim import GRIP_CLOSE, GRIP_OPEN, TASKS, eef_pose, follow, make_env, obj_pose
 
 TASK = TASKS["mug"]
+DEGREES = [int(a) for a in sys.argv[2].split(",")] if len(sys.argv) > 2 else list(range(0, 360, 30))
 
 
 def plan(obs, angle: float, lift: float = 0.15):
@@ -35,13 +36,13 @@ def plan(obs, angle: float, lift: float = 0.15):
 
 def main(out_dir: str) -> None:
     res = []
-    for deg in range(0, 360, 30):
+    for deg in DEGREES:
         env, _, obs = make_env(task_id=TASK.task_id)
         _, ok, _ = follow(env, obs, plan(obs, np.radians(deg)))
         res.append({"angle_deg": deg, "success": ok})
         print(res[-1], flush=True)
         env.close()
-    with open(f"{out_dir}/rim_angle_sweep.json", "w") as f:
+    with open(f"{out_dir}/rim_angle_sweep_{DEGREES[0]}_{DEGREES[-1]}.json", "w") as f:
         json.dump(res, f, indent=1)
 
 
