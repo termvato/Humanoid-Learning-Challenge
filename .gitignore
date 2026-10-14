@@ -1,0 +1,15 @@
+# Claude Code (local only)
+CLAUDE.md
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Data and outputs (large; published separately)
+data/
+outputs/
+third_party/
