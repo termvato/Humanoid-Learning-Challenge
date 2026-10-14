@@ -27,7 +27,7 @@ def sample(rng, pick0, place0, radius: float, min_gap: float = 0.16):
 
 
 def worker(args) -> list:
-    task_name, trajs, seeds, radius, tmp, around, centre = args
+    task_name, trajs, seeds, radius, tmp, around, centre, noise = args
     from handsim.augment import centred_place_shift, place, rollout, warp
     from handsim.sim import TASKS, make_env, obj_pose
 
@@ -49,7 +49,7 @@ def worker(args) -> list:
         else:
             d_place = np.r_[b - tr["place"][:2], 0]
         eef = warp(tr["eef"], tr["grip"], d_pick, d_place)
-        ok, frames = rollout(env, obs, eef, tr["quat"], tr["grip"], record=True)
+        ok, frames = rollout(env, obs, eef, tr["quat"], tr["grip"], record=True, noise=noise, rng=rng)
         row = {
             "seed": int(s),
             "source": int(s % len(trajs)),
@@ -73,7 +73,12 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=200, help="successful demos wanted")
     ap.add_argument("--radius", type=float, default=0.10)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--workers", type=int, default=8, help="each renders on the GPU (~2 GB RAM + a GL context); 14+ ran out of memory")
+    ap.add_argument(
+        "--workers",
+        type=int,
+        default=8,
+        help="each renders on the GPU (~2 GB RAM + a GL context); 14+ ran out of memory",
+    )
     ap.add_argument("--task", default="mug", help="key of handsim.sim.TASKS")
     ap.add_argument(
         "--around",
@@ -84,6 +89,7 @@ def main() -> None:
     ap.add_argument(
         "--no-centre", action="store_true", help="keep the human's release point instead of centring"
     )
+    ap.add_argument("--noise", type=float, default=0.0, help="DART action noise std (normalised units)")
     args = ap.parse_args()
     out = Path(args.out)
     tmp = out.parent / (out.name + "_tmp")
@@ -104,7 +110,8 @@ def main() -> None:
         chunks = [seeds[k : k + CHUNK] for k in range(0, len(seeds), CHUNK)]
         futs = {
             pool.submit(
-                worker, (args.task, trajs, c, args.radius, str(tmp), args.around, not args.no_centre)
+                worker,
+                (args.task, trajs, c, args.radius, str(tmp), args.around, not args.no_centre, args.noise),
             ): c
             for c in chunks
         }
@@ -172,6 +179,7 @@ def main() -> None:
         "task": args.task,
         "around": args.around,
         "centre_on_place": not args.no_centre,
+        "noise": args.noise,
     }
     (out / "attempts.json").write_text(json.dumps({"summary": summary, "rows": rows}, indent=1))
     print(json.dumps(summary, indent=1))

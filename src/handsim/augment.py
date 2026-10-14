@@ -48,9 +48,21 @@ def quat2axisangle(q: np.ndarray) -> np.ndarray:
     return R.from_quat(q).as_rotvec()
 
 
-def rollout(env, obs, eef, quat, grip, record: bool, extra_steps: int = 10):
-    """Run the target sequence. Returns (success, frames) with frames as LeRobot LIBERO features."""
+def rollout(env, obs, eef, quat, grip, record: bool, extra_steps: int = 10, noise: float = 0.0, rng=None):
+    """Run the target sequence. Returns (success, frames) with frames as LeRobot LIBERO features.
+
+    noise > 0 (DART-style): the executed arm action gets Gaussian noise (std in normalised action units, 1 = 5 cm
+    or 0.5 rad per step), while the recorded label stays the clean action from the current pose to the target.
+    The next clean action then corrects the error, so the demos show recoveries a policy will need."""
     frames, success, after = [], False, 0
+    rng = rng if rng is not None else np.random.default_rng()
+
+    def execute(a):
+        if noise <= 0:
+            return a
+        b = a.copy()
+        b[:6] = np.clip(b[:6] + rng.normal(0, noise, 6), -1, 1)
+        return b
 
     def add(o, action):
         if record:
@@ -72,12 +84,12 @@ def rollout(env, obs, eef, quat, grip, record: bool, extra_steps: int = 10):
             break
         a = pose_to_action(p, q, eef[0], quat[0], grip[0])
         add(obs, a)
-        obs, *_ = env.step(a)
+        obs, *_ = env.step(execute(a))
     for i in range(len(eef)):
         p, q = eef_pose(obs)
         a = pose_to_action(p, q, eef[i], quat[i], grip[i])
         add(obs, a)
-        obs, *_ = env.step(a)
+        obs, *_ = env.step(execute(a))
         if env.env._check_success():
             success = True
         if success:

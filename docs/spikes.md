@@ -31,3 +31,19 @@ Five takes (60 fps, 1920x1440). take01-03: whole-hand grab of the jug body. take
   30 deg steps fail at 90 and 120 only; 5 deg steps fail 90-125 (the handle). The anchor now moves grasps out of
   88-127 deg. take05 grasps at 84 deg and still fails, so the handle is not the whole story there; open.
 - Hand detection by LiDAR on the real jug handle: unreliable (handle mostly hidden), not used.
+
+## Policy v1: ACT on 200 demos from 3 real takes (2026-10-15)
+
+Data: `data/demos/real3_r04` (200 kept of 448 rollouts, 60%; sources take02/03/04; placements +-4 cm around the
+LIBERO default layout; release centred on the plate). ACT, chunk 50, 20 actions per call, batch 32, 20k steps
+(~17 epochs), RTX 4070, ~75 min. Eval: lerobot-eval on libero_90 #72 stored init states, max 400 steps.
+
+| checkpoint | episodes | success |
+|---|---|---|
+| 5k | 10 | 0% |
+| 10k | 20 | 10% |
+| 15k | 50 | 14% |
+| 20k | 50 | 20% |
+
+Failures (10k videos): grasps that miss the rim, arm drifting off the mug, mug knocked over, plate flipped once.
+Next: DART-style action noise in the demos (noise 0.2: yield unchanged, 24/39).
