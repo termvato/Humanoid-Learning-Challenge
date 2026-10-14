@@ -17,13 +17,19 @@ def keypoints(mid, rot, w):
     return kp
 
 
-def main(out: str) -> None:
+# per task: (rim offset from the pick centre along the closing axis, fingertip height at the grasp, pick height,
+# pick diameter) matching the scripted oracle's working grasps
+SHAPES = {"bowl": (0.05, 0.029, 0.053, 0.11), "mug": (0.04, 0.089, 0.115, 0.097)}
+
+
+def main(out: str, task: str = "mug") -> None:
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    bowl, plate = np.array([0.1, 0.05]), np.array([0.36, 0.05])  # 26 cm apart along +x
+    rim, tip_z, height, diameter = SHAPES[task]
+    bowl, plate = np.array([0.1, 0.05]), np.array([0.36, 0.05])  # pick and place, 26 cm apart along +x
     rot = np.stack([[0, -1, 0], [1, 0, 0], [0, 0, -1]], 1).astype(float)  # closing axis +x, pointing down
-    grasp = np.r_[bowl - [0.05, 0], 0.029]
-    place = np.r_[plate - [0.05, 0], 0.049]
+    grasp = np.r_[bowl - [rim, 0], tip_z]
+    place = np.r_[plate - [rim, 0], tip_z + 0.02]
     keys = [  # (time s, tip midpoint, width)
         (0.0, grasp + [0, 0, 0.12], 0.08), (1.5, grasp, 0.08), (2.0, grasp, 0.01), (3.0, grasp + [0, 0, 0.12], 0.01),
         (4.5, place + [0, 0, 0.12], 0.01), (5.5, place, 0.01), (6.0, place, 0.08), (7.0, place + [0, 0, 0.12], 0.08),
@@ -38,10 +44,10 @@ def main(out: str) -> None:
     np.savez(out / "hand.npz", kp_world=kp, kp_2d=np.zeros((n, 21, 2)), found=np.ones(n, bool),
              depth_ok=np.ones(n, bool), depth_offset=np.zeros(n), rows=np.arange(n), t=t)
     scene = {"T_world_table": np.eye(4).tolist(),
-             "bowl": {"centre": bowl.tolist(), "height": 0.053, "diameter": 0.11},
-             "plate": {"centre": plate.tolist(), "height": 0.019, "diameter": 0.14}}
+             "pick": {"centre": bowl.tolist(), "height": height, "diameter": diameter},
+             "place": {"centre": plate.tolist(), "height": 0.019, "diameter": 0.14}}
     (out / "scene.json").write_text(json.dumps(scene))
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else "mug")

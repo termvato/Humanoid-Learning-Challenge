@@ -1,4 +1,6 @@
-"""Stray capture -> table frame, bowl and plate positions (scene.json), plus the S2 checks and a top view.
+"""Stray capture -> table frame, pick and place object positions (scene.json), plus the S2 checks and a top view.
+
+Pick object = the tallest blob (mug, bowl); place object = the widest of the rest (plate, or any flat stand-in).
 
 Uses the first frames (hand not yet in view) for objects, the last frames to check that the table stays put.
 
@@ -47,10 +49,10 @@ def main() -> None:
     T_tw = np.linalg.inv(T_wt)
     pts_t = start @ T_tw[:3, :3].T + T_tw[:3, 3]
     objs = objects_on_table(pts_t)
-    cand = [o for o in objs if 0.01 < o["height"] < 0.15 and 0.04 < o["diameter"] < 0.35]
-    bowl = max(cand, key=lambda o: o["height"]) if cand else None
-    rest = [o for o in cand if o is not bowl]
-    plate = max(rest, key=lambda o: o["diameter"]) if rest else None
+    cand = [o for o in objs if 0.008 < o["height"] < 0.2 and 0.04 < o["diameter"] < 0.40]
+    pick = max(cand, key=lambda o: o["height"]) if cand else None
+    rest = [o for o in cand if o is not pick]
+    place = max(rest, key=lambda o: o["diameter"]) if rest else None
 
     end = cloud(cap, range(max(0, n - args.last), n, 3))
     end_on = end[np.abs(end @ normal + d) < 0.02]
@@ -59,10 +61,10 @@ def main() -> None:
     res = {
         "T_world_table": T_wt.tolist(),
         "objects": [{k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in o.items()} for o in objs],
-        "bowl": None if bowl is None else {**bowl, "centre": bowl["centre"].tolist()},
-        "plate": None if plate is None else {**plate, "centre": plate["centre"].tolist()},
+        "pick": None if pick is None else {**pick, "centre": pick["centre"].tolist()},
+        "place": None if place is None else {**place, "centre": place["centre"].tolist()},
         "s2_table_drift_m": drift,
-        "s2_bowl_plate_m": None if not (bowl and plate) else float(np.linalg.norm(bowl["centre"] - plate["centre"])),
+        "s2_pick_place_m": None if not (pick and place) else float(np.linalg.norm(pick["centre"] - place["centre"])),
     }
     with open(out / "scene.json", "w") as f:
         json.dump(res, f, indent=1)
@@ -70,7 +72,7 @@ def main() -> None:
     sel = (pts_t[:, 2] > -0.02) & (pts_t[:, 2] < 0.2)
     fig, ax = plt.subplots(figsize=(6, 6))
     sc = ax.scatter(pts_t[sel, 0], pts_t[sel, 1], c=pts_t[sel, 2] * 100, s=0.5, cmap="viridis", vmin=0, vmax=8)
-    for name, o in (("bowl", bowl), ("plate", plate)):
+    for name, o in (("pick", pick), ("place", place)):
         if o:
             ax.add_patch(plt.Circle(o["centre"], o["diameter"] / 2, fill=False, color="r"))
             ax.text(*o["centre"], f"{name}\n{o['height'] * 100:.1f} cm high", color="r", ha="center")
@@ -78,9 +80,9 @@ def main() -> None:
     ax.set_xlabel("table x (m)")
     ax.set_ylabel("table y (m)")
     fig.colorbar(sc, label="height above table (cm)")
-    ax.set_title(f"table drift {drift * 100:.2f} cm, bowl-plate {res['s2_bowl_plate_m'] or float('nan'):.3f} m")
+    ax.set_title(f"table drift {drift * 100:.2f} cm, pick-place {res['s2_pick_place_m'] or float('nan'):.3f} m")
     fig.savefig(out / "scene_top.png", dpi=120, bbox_inches="tight")
-    print(json.dumps({k: res[k] for k in ("bowl", "plate", "s2_table_drift_m", "s2_bowl_plate_m")}, indent=1))
+    print(json.dumps({k: res[k] for k in ("pick", "place", "s2_table_drift_m", "s2_pick_place_m")}, indent=1))
 
 
 if __name__ == "__main__":

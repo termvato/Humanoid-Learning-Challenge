@@ -148,13 +148,13 @@ def grip_closed(width: np.ndarray) -> tuple[np.ndarray, float]:
     return closed, float(thr)
 
 
-def real_to_sim(bowl_real: np.ndarray, plate_real: np.ndarray, bowl_sim: np.ndarray, plate_sim: np.ndarray):
-    """4x4 sim-from-table transform: real bowl centre -> sim bowl, bowl->plate direction matched (yaw only).
-    Inputs are table-frame xy (real) and sim world xyz of each object's base (sim). Scale stays 1."""
-    a = np.arctan2(*(plate_real - bowl_real)[::-1])
-    b = np.arctan2(*(plate_sim - bowl_sim)[:2][::-1])
+def real_to_sim(pick_real: np.ndarray, place_real: np.ndarray, pick_sim: np.ndarray, place_sim: np.ndarray):
+    """4x4 sim-from-table transform: real pick object centre -> sim pick object, pick->place direction matched
+    (yaw only). Inputs are table-frame xy (real) and sim world xyz of each object's base (sim). Scale stays 1."""
+    a = np.arctan2(*(place_real - pick_real)[::-1])
+    b = np.arctan2(*(place_sim - pick_sim)[:2][::-1])
     Rz = R.from_euler("z", b - a).as_matrix()
     T = np.eye(4)
     T[:3, :3] = Rz
-    T[:3, 3] = bowl_sim - Rz @ np.array([*bowl_real, 0.0])
+    T[:3, 3] = pick_sim - Rz @ np.array([*pick_real, 0.0])
     return T

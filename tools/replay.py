@@ -1,7 +1,7 @@
 """Hand track + scene -> Panda end-effector path in LIBERO -> open-loop replay (run with .venv).
 
-The sim scene copies the real layout: the sim plate is moved so that it sits where the real plate sat relative
-to the real bowl (bowl -> bowl, bowl-to-plate direction matched, scale 1).
+The sim scene copies the real layout: the sim place object is moved so that it sits where the real one sat
+relative to the real pick object (pick -> pick, pick-to-place direction matched, scale 1).
 
 Usage: .venv/bin/python tools/replay.py data/raw/take01 outputs/take01 [--orient yaw|full|fixed]
 Writes: replay.mp4 (sim), side_by_side.mp4 (phone | sim), traj_sim.npz, replay.json
@@ -21,6 +21,7 @@ from handsim.io.stray import load_stray
 from handsim.sim import (
     GRIP_CLOSE,
     GRIP_OPEN,
+    TASKS,
     eef_pose,
     follow,
     make_env,
@@ -29,7 +30,6 @@ from handsim.sim import (
     set_obj_pose,
 )
 
-SIM_TABLE_Z = 0.90
 CONTROL_HZ = 20
 GRIP_DWELL = 12  # control steps held still at each open/close switch: the Panda gripper needs ~0.5 s, a hand ~0.2 s
 
@@ -102,6 +102,7 @@ def main() -> None:
     ap.add_argument("capture")
     ap.add_argument("out")
     ap.add_argument("--orient", choices=["yaw", "full", "fixed"], default="yaw")
+    ap.add_argument("--task", default="mug", help="key of handsim.sim.TASKS")
     args = ap.parse_args()
     out = Path(args.out)
     scene = json.loads((out / "scene.json").read_text())
@@ -115,14 +116,16 @@ def main() -> None:
     pos, rot, width = smooth_track(pos, rot, width, fps)
     closed, thr = grip_closed(width)
 
-    env, _, obs = make_env()
-    bowl_sim, _ = obj_pose(obs, "akita_black_bowl_1")
-    _, pq = obj_pose(obs, "plate_1")
-    bowl_r, plate_r = np.array(scene["bowl"]["centre"]), np.array(scene["plate"]["centre"])
-    sim_dir = np.array([0.0, 1.0])  # LIBERO: plate sits along +y from the bowl
-    plate_sim_xy = bowl_sim[:2] + sim_dir * np.linalg.norm(plate_r - bowl_r)
-    obs = set_obj_pose(env, "plate_1", np.r_[plate_sim_xy, SIM_TABLE_Z + 0.005], pq)
-    T_st = real_to_sim(bowl_r, plate_r, np.r_[bowl_sim[:2], SIM_TABLE_Z], np.r_[plate_sim_xy, SIM_TABLE_Z])
+    task = TASKS[args.task]
+    env, _, obs = make_env(task_id=task.task_id)
+    pick_sim, _ = obj_pose(obs, task.pick)
+    place_sim0, pq = obj_pose(obs, task.place)
+    table_z = pick_sim[2]  # object origins sit at their base
+    pick_r, place_r = np.array(scene["pick"]["centre"]), np.array(scene["place"]["centre"])
+    sim_dir = (place_sim0 - pick_sim)[:2] / np.linalg.norm((place_sim0 - pick_sim)[:2])
+    place_sim_xy = pick_sim[:2] + sim_dir * np.linalg.norm(place_r - pick_r)
+    obs = set_obj_pose(env, task.place, np.r_[place_sim_xy, place_sim0[2] + 0.005], pq)
+    T_st = real_to_sim(pick_r, place_r, np.r_[pick_sim[:2], table_z], np.r_[place_sim_xy, table_z])
 
     pos_s = pos @ T_st[:3, :3].T + T_st[:3, 3]
     rot_s = T_st[:3, :3] @ rot
@@ -160,20 +163,21 @@ def main() -> None:
         frames.append(obs["agentview_image"][::-1])
         success = success or bool(env.env._check_success())
 
-    # S3: gripper point vs the bowl rim at the first closed frame
+    # S3: gripper point vs the pick object's rim at the first closed frame
     g = int(np.argmax(closed)) if closed.any() else None
     s3 = None
     if g is not None:
-        r = np.linalg.norm(pos[g, :2] - bowl_r)
+        r = np.linalg.norm(pos[g, :2] - pick_r)
         s3 = {
-            "radial_to_rim_m": float(r - scene["bowl"]["diameter"] / 2),
-            "height_vs_rim_m": float(pos[g, 2] - scene["bowl"]["height"]),
+            "radial_to_rim_m": float(r - scene["pick"]["diameter"] / 2),
+            "height_vs_rim_m": float(pos[g, 2] - scene["pick"]["height"]),
         }
 
     imageio.mimsave(out / "replay.mp4", frames, fps=CONTROL_HZ)
     if args.capture != "none":
         side_by_side(args.capture, hand, run, t, t_src, frames[n_lead:], out / "side_by_side.mp4")
-    np.savez(out / "traj_sim.npz", t=tc, eef=eef_c, quat=quat_c, grip=grip_c, bowl=bowl_sim, plate=plate_sim_xy)
+    np.savez(out / "traj_sim.npz", t=tc, eef=eef_c, quat=quat_c, grip=grip_c, pick=pick_sim,
+             place=np.r_[place_sim_xy, place_sim0[2]], task=args.task)
     res = {
         "success": success,
         "orient": args.orient,
@@ -182,7 +186,8 @@ def main() -> None:
         "grip_threshold_m": thr,
         "closed_fraction": float(closed.mean()),
         "tracking_error_median_m": float(np.median(err)),
-        "real_bowl_plate_m": float(np.linalg.norm(plate_r - bowl_r)),
+        "task": args.task,
+        "real_pick_place_m": float(np.linalg.norm(place_r - pick_r)),
         "s3": s3,
     }
     (out / "replay.json").write_text(json.dumps(res, indent=1))

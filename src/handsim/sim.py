@@ -4,6 +4,7 @@ Frames: LIBERO world frame (z up). Quaternions are xyzw (robosuite obs and scipy
 """
 
 import os
+from dataclasses import dataclass
 
 import numpy as np
 from scipy.spatial.transform import Rotation as R
@@ -14,7 +15,22 @@ from libero.libero import benchmark, get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
 
 SUITE = "libero_90"
-TASK_ID = 9  # KITCHEN_SCENE1_put_the_black_bowl_on_the_plate
+
+
+@dataclass(frozen=True)
+class Task:
+    task_id: int  # in libero_90
+    pick: str  # object the hand picks up
+    place: str  # object it goes on
+    language: str
+
+
+TASKS = {
+    "bowl": Task(9, "akita_black_bowl_1", "plate_1", "put the black bowl on the plate"),
+    "mug": Task(72, "porcelain_mug_1", "plate_1", "put the white mug on the plate"),
+}
+DEFAULT_TASK = "mug"
+TASK_ID = TASKS[DEFAULT_TASK].task_id
 POS_SCALE = 0.05  # m per unit action (OSC_POSE output_max)
 ROT_SCALE = 0.5  # rad per unit action
 GRIP_OPEN, GRIP_CLOSE = -1.0, 1.0
