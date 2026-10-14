@@ -1,0 +1,26 @@
+[project]
+name = "handsim"
+version = "0.1.0"
+description = "Phone recordings of a human hand drive a Panda arm in LIBERO"
+authors = [
+    { name = "vakhtang inasaridze", email = "inasaridzevato@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "lerobot[libero,smolvla]==0.6.1",
+    "mujoco>=3.0,<3.4",
+    "numpy",
+    "scipy",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# ROS 2 Jazzy on PYTHONPATH registers pytest plugins that crash in this env.
+addopts = "-p no:launch_testing -p no:launch_ros -p no:ament_copyright -p no:ament_flake8 -p no:ament_xmllint -p no:ament_lint -p no:ament_pep257"
+
+[tool.ruff]
+line-length = 110

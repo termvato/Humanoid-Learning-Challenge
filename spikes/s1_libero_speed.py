@@ -33,7 +33,8 @@ def main(out_dir: str) -> None:
     import imageio
 
     imageio.imwrite(os.path.join(out_dir, "agentview.png"), obs["agentview_image"][::-1])
-    json.dump(res, open(os.path.join(out_dir, "result.json"), "w"), indent=1)
+    with open(os.path.join(out_dir, "result.json"), "w") as f:
+        json.dump(res, f, indent=1)
     print(json.dumps(res, indent=1))
 
 
