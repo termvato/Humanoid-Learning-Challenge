@@ -33,7 +33,7 @@ def fit_plane(points: np.ndarray, up: np.ndarray, iters: int = 300, tol: float =
             best, best_n = inl, inl.sum()
     p = points[best]
     centre = p.mean(0)
-    n = np.linalg.svd(p - centre)[2][-1]  # least-squares refit on inliers
+    n = np.linalg.svd(p - centre, full_matrices=False)[2][-1]  # least-squares refit on inliers
     if n @ up < 0:
         n = -n
     return n, -n @ centre
@@ -51,9 +51,12 @@ def table_frame(normal: np.ndarray, d: float, origin_hint: np.ndarray, x_hint: n
     return T
 
 
-def objects_on_table(pts_t: np.ndarray, cell: float = 0.005, min_h: float = 0.008, min_cells: int = 40):
-    """Blobs above the table from table-frame points. Returns dicts (centre xy, height, diameter), largest first."""
-    p = pts_t[(pts_t[:, 2] > min_h) & (pts_t[:, 2] < 0.4)]
+def objects_on_table(
+    pts_t: np.ndarray, cell: float = 0.005, min_h: float = 0.008, max_h: float = 0.4, min_cells: int = 40
+):
+    """Blobs between min_h and max_h above the table from table-frame points.
+    Returns dicts (centre xy, height, diameter, cells), largest first. Centre = mean of occupied cells."""
+    p = pts_t[(pts_t[:, 2] > min_h) & (pts_t[:, 2] < max_h)]
     if len(p) == 0:
         return []
     ij = np.floor(p[:, :2] / cell).astype(int)
@@ -70,13 +73,24 @@ def objects_on_table(pts_t: np.ndarray, cell: float = 0.005, min_h: float = 0.00
             continue
         q = p[cell_lab == k]
         xy = (cells + lo + 0.5) * cell
-        out.append({
-            "centre": xy.mean(0),
-            "height": float(np.percentile(q[:, 2], 95)) if len(q) else 0.0,
-            "diameter": float(np.ptp(xy, 0).max() + cell),
-            "cells": len(cells),
-        })
+        out.append(
+            {
+                "centre": xy.mean(0),
+                "height": float(np.percentile(q[:, 2], 95)) if len(q) else 0.0,
+                "diameter": float(np.ptp(xy, 0).max() + cell),
+                "cells": len(cells),
+            }
+        )
     return sorted(out, key=lambda o: -o["cells"])
+
+
+def fit_circle(xy: np.ndarray) -> tuple[np.ndarray, float]:
+    """Least-squares circle (Kasa) through 2D points. Works on a partial arc, e.g. the side of a mug that
+    LiDAR sees. Returns (centre, radius)."""
+    A = np.c_[2 * xy, np.ones(len(xy))]
+    b = (xy**2).sum(1)
+    cx, cy, c = np.linalg.lstsq(A, b, rcond=None)[0]
+    return np.array([cx, cy]), float(np.sqrt(c + cx**2 + cy**2))
 
 
 def solve_translation(kp_rel: np.ndarray, uv: np.ndarray, K: np.ndarray) -> np.ndarray:
@@ -158,3 +172,16 @@ def real_to_sim(pick_real: np.ndarray, place_real: np.ndarray, pick_sim: np.ndar
     T[:3, :3] = Rz
     T[:3, 3] = pick_sim - Rz @ np.array([*pick_real, 0.0])
     return T
+
+
+def grasp_anchor(tip: np.ndarray, centre: np.ndarray, rim_radius: float, tip_z: float) -> np.ndarray:
+    """Constant shift that puts the fingertip midpoint at the grasp (tip, sim frame) on the pick object's rim,
+    at the same angle around the object, at height tip_z above its base (centre = base xyz).
+
+    Hand tracking is a few cm off, mostly as a constant bias, while a rim pinch needs about 1 cm. At the grasp the
+    true relation is known (fingers on the rim), so shifting the whole track by this vector removes the bias and
+    keeps the carry and the place unchanged relative to each other."""
+    u = (tip - centre)[:2]
+    u = u / np.linalg.norm(u)
+    target = np.r_[centre[:2] + rim_radius * u, centre[2] + tip_z]
+    return target - tip

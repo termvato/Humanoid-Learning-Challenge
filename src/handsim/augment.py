@@ -42,13 +42,16 @@ def rollout(env, obs, eef, quat, grip, record: bool, extra_steps: int = 10):
 
     def add(o, action):
         if record:
-            frames.append({
-                "observation.images.image": o["agentview_image"][::-1, ::-1].copy(),
-                "observation.images.image2": o["robot0_eye_in_hand_image"][::-1, ::-1].copy(),
-                "observation.state": np.r_[o["robot0_eef_pos"], quat2axisangle(o["robot0_eef_quat"]),
-                                           o["robot0_gripper_qpos"]].astype(np.float32),
-                "action": action.astype(np.float32),
-            })
+            frames.append(
+                {
+                    "observation.images.image": o["agentview_image"][::-1, ::-1].copy(),
+                    "observation.images.image2": o["robot0_eye_in_hand_image"][::-1, ::-1].copy(),
+                    "observation.state": np.r_[
+                        o["robot0_eef_pos"], quat2axisangle(o["robot0_eef_quat"]), o["robot0_gripper_qpos"]
+                    ].astype(np.float32),
+                    "action": action.astype(np.float32),
+                }
+            )
 
     # approach the first target with recorded actions too, so the policy learns the start
     for _ in range(80):
@@ -79,4 +82,3 @@ def place(env, task: Task, pick_xy: np.ndarray, place_xy: np.ndarray):
     b, bq = obj_pose(obs, task.place)
     set_obj_pose(env, task.place, np.r_[place_xy, b[2] + 0.005], bq, settle=0)
     return set_obj_pose(env, task.pick, np.r_[pick_xy, a[2] + 0.005], aq)
-

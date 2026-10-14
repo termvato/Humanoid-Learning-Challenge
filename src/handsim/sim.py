@@ -23,11 +23,13 @@ class Task:
     pick: str  # object the hand picks up
     place: str  # object it goes on
     language: str
+    rim_radius: float  # m, pick object centre to the rim the fingers pinch (from the oracle sweeps)
+    grasp_tip_z: float  # m, fingertip height above the pick object's base for a rim pinch (oracle)
 
 
 TASKS = {
-    "bowl": Task(9, "akita_black_bowl_1", "plate_1", "put the black bowl on the plate"),
-    "mug": Task(72, "porcelain_mug_1", "plate_1", "put the white mug on the plate"),
+    "bowl": Task(9, "akita_black_bowl_1", "plate_1", "put the black bowl on the plate", 0.05, 0.029),
+    "mug": Task(72, "porcelain_mug_1", "plate_1", "put the white mug on the plate", 0.04, 0.084),
 }
 DEFAULT_TASK = "mug"
 TASK_ID = TASKS[DEFAULT_TASK].task_id
@@ -36,7 +38,9 @@ ROT_SCALE = 0.5  # rad per unit action
 GRIP_OPEN, GRIP_CLOSE = -1.0, 1.0
 
 
-def make_env(suite: str = SUITE, task_id: int = TASK_ID, size: int = 256, init: int | None = 0, settle: int = 10):
+def make_env(
+    suite: str = SUITE, task_id: int = TASK_ID, size: int = 256, init: int | None = 0, settle: int = 10
+):
     """Env plus the task; `init` picks one of the stored init states (None keeps the random reset).
 
     Steps `settle` no-op actions first, as LIBERO's evaluation does: the obs returned by reset and

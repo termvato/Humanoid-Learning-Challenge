@@ -38,8 +38,14 @@ def worker(args) -> list:
         obs = place(env, task, a, b)
         eef = warp(tr["eef"], tr["grip"], np.r_[a - tr["pick"][:2], 0], np.r_[b - tr["place"][:2], 0])
         ok, frames = rollout(env, obs, eef, tr["quat"], tr["grip"], record=True)
-        row = {"seed": int(s), "source": int(s % len(trajs)), "pick": a.tolist(), "place": b.tolist(),
-               "success": bool(ok), "steps": len(frames)}
+        row = {
+            "seed": int(s),
+            "source": int(s % len(trajs)),
+            "pick": a.tolist(),
+            "place": b.tolist(),
+            "success": bool(ok),
+            "steps": len(frames),
+        }
         if ok:
             path = Path(tmp) / f"ep_{s:06d}.npz"
             np.savez(path, **{k: np.stack([f[k] for f in frames]) for k in frames[0]})
@@ -71,8 +77,10 @@ def main() -> None:
             batch = int(need / rate * 1.1) + args.workers
             seeds = np.arange(next_seed, next_seed + batch)
             next_seed += batch
-            chunks = [(args.task, trajs, seeds[w :: args.workers].tolist(), args.radius, str(tmp))
-                      for w in range(args.workers)]
+            chunks = [
+                (args.task, trajs, seeds[w :: args.workers].tolist(), args.radius, str(tmp))
+                for w in range(args.workers)
+            ]
             for res in pool.imap_unordered(worker, chunks):
                 rows += res
             print(f"tried {len(rows)}, success {sum(r['success'] for r in rows)}", flush=True)
@@ -86,15 +94,30 @@ def main() -> None:
     language = TASKS[args.task].language
 
     feats = {
-        "observation.images.image": {"dtype": "video", "shape": (256, 256, 3), "names": ["height", "width", "channel"]},
-        "observation.images.image2": {"dtype": "video", "shape": (256, 256, 3), "names": ["height", "width", "channel"]},
+        "observation.images.image": {
+            "dtype": "video",
+            "shape": (256, 256, 3),
+            "names": ["height", "width", "channel"],
+        },
+        "observation.images.image2": {
+            "dtype": "video",
+            "shape": (256, 256, 3),
+            "names": ["height", "width", "channel"],
+        },
         "observation.state": {"dtype": "float32", "shape": (8,), "names": None},
         "action": {"dtype": "float32", "shape": (7,), "names": None},
     }
     if out.exists():
         shutil.rmtree(out)
-    ds = LeRobotDataset.create(repo_id=f"local/{out.name}", fps=20, features=feats, root=out, robot_type="panda",
-                               use_videos=True, image_writer_threads=8)
+    ds = LeRobotDataset.create(
+        repo_id=f"local/{out.name}",
+        fps=20,
+        features=feats,
+        root=out,
+        robot_type="panda",
+        use_videos=True,
+        image_writer_threads=8,
+    )
     kept = [r for r in rows if r["success"]][: args.n]
     for r in kept:
         ep = np.load(r["file"])
@@ -103,9 +126,15 @@ def main() -> None:
         ds.save_episode()
     ds.finalize()
     shutil.rmtree(tmp)
-    summary = {"tried": len(rows), "success": sum(r["success"] for r in rows),
-               "success_rate": float(np.mean([r["success"] for r in rows])), "kept": len(kept),
-               "radius": args.radius, "sources": args.traj, "task": args.task}
+    summary = {
+        "tried": len(rows),
+        "success": sum(r["success"] for r in rows),
+        "success_rate": float(np.mean([r["success"] for r in rows])),
+        "kept": len(kept),
+        "radius": args.radius,
+        "sources": args.traj,
+        "task": args.task,
+    }
     (out / "attempts.json").write_text(json.dumps({"summary": summary, "rows": rows}, indent=1))
     print(json.dumps(summary, indent=1))
 

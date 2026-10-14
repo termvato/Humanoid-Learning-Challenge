@@ -9,7 +9,9 @@ from scipy.spatial.transform import Rotation
 
 from handsim.io.stray import arkit_to_opencv, backproject, load_stray, scale_intrinsics
 
-HEADER_NEW = "timestamp, frame, x, y, z, qx, qy, qz, qw, fx, fy, cx, cy, distortion_center_x, distortion_center_y"
+HEADER_NEW = (
+    "timestamp, frame, x, y, z, qx, qy, qz, qw, fx, fy, cx, cy, distortion_center_x, distortion_center_y"
+)
 HEADER_OLD = "timestamp, frame, x, y, z, qx, qy, qz, qw"
 RGB = (1920, 1440)
 
@@ -124,7 +126,9 @@ def test_real_capture_frames_agree_in_world():
     cap = load_stray(next(p for p in PAIR01.iterdir() if (p / "odometry.csv").exists()))
     d = []
     for i in (100, 500, 900):
-        a, b = (backproject(cap.depth(k), cap.K_depth(k), cap.T_wc[k], cap.confidence(k), max_depth=3.0)
-                for k in (i, i + 30))
+        a, b = (
+            backproject(cap.depth(k), cap.K_depth(k), cap.T_wc[k], cap.confidence(k), max_depth=3.0)
+            for k in (i, i + 30)
+        )
         d.append(np.median(cKDTree(b).query(a[::10])[0]))
     assert np.median(d) < 0.05

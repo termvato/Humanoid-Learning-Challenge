@@ -4,6 +4,7 @@ from scipy.spatial.transform import Rotation as R
 from handsim.geometry import (
     fill_gaps,
     fit_plane,
+    grasp_anchor,
     grip_closed,
     gripper_pose,
     objects_on_table,
@@ -86,7 +87,16 @@ def test_grip_closed_hysteresis():
 
 
 def test_real_to_sim_maps_objects():
-    T = real_to_sim(np.array([0.1, 0.2]), np.array([0.1, 0.5]), np.array([0, 0, 0.9]), np.array([0.3, 0, 0.9]))
+    T = real_to_sim(
+        np.array([0.1, 0.2]), np.array([0.1, 0.5]), np.array([0, 0, 0.9]), np.array([0.3, 0, 0.9])
+    )
     bowl = T @ [0.1, 0.2, 0, 1]
     plate = T @ [0.1, 0.5, 0, 1]
     assert np.allclose(bowl[:3], [0, 0, 0.9]) and np.allclose(plate[:3], [0.3, 0, 0.9])
+
+
+def test_grasp_anchor_moves_tip_onto_rim():
+    centre = np.array([0.1, -0.2, 0.43])
+    tip = np.array([0.1 + 0.07, -0.2, 0.43 + 0.12])  # 7 cm out, 12 cm up
+    shift = grasp_anchor(tip, centre, 0.04, 0.084)
+    assert np.allclose(tip + shift, [0.14, -0.2, 0.514])

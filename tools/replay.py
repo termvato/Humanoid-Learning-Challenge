@@ -16,7 +16,15 @@ import imageio
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from handsim.geometry import PANDA_TIP_OFFSET, fill_gaps, grip_closed, gripper_pose, real_to_sim, smooth_track
+from handsim.geometry import (
+    PANDA_TIP_OFFSET,
+    fill_gaps,
+    grasp_anchor,
+    grip_closed,
+    gripper_pose,
+    real_to_sim,
+    smooth_track,
+)
 from handsim.io.stray import load_stray
 from handsim.sim import (
     GRIP_CLOSE,
@@ -31,7 +39,9 @@ from handsim.sim import (
 )
 
 CONTROL_HZ = 20
-GRIP_DWELL = 12  # control steps held still at each open/close switch: the Panda gripper needs ~0.5 s, a hand ~0.2 s
+GRIP_DWELL = (
+    12  # control steps held still at each open/close switch: the Panda gripper needs ~0.5 s, a hand ~0.2 s
+)
 
 
 def hand_track(hand: dict, T_tw: np.ndarray):
@@ -103,6 +113,7 @@ def main() -> None:
     ap.add_argument("out")
     ap.add_argument("--orient", choices=["yaw", "full", "fixed"], default="yaw")
     ap.add_argument("--task", default="mug", help="key of handsim.sim.TASKS")
+    ap.add_argument("--no-anchor", action="store_true", help="skip the grasp anchor (raw retargeted track)")
     args = ap.parse_args()
     out = Path(args.out)
     scene = json.loads((out / "scene.json").read_text())
@@ -128,6 +139,11 @@ def main() -> None:
     T_st = real_to_sim(pick_r, place_r, np.r_[pick_sim[:2], table_z], np.r_[place_sim_xy, table_z])
 
     pos_s = pos @ T_st[:3, :3].T + T_st[:3, 3]
+    g = int(np.argmax(closed)) if closed.any() else None
+    anchor = np.zeros(3)
+    if g is not None and not args.no_anchor:
+        anchor = grasp_anchor(pos_s[g], np.r_[pick_sim[:2], table_z], task.rim_radius, task.grasp_tip_z)
+        pos_s = pos_s + anchor
     rot_s = T_st[:3, :3] @ rot
     _, q0 = eef_pose(obs)
     down = R.from_quat(q0).as_matrix()
@@ -149,7 +165,9 @@ def main() -> None:
     tc = tc[0] + np.arange(len(eef_c)) / CONTROL_HZ  # sim time, longer than the human's by the dwells
 
     frames = []
-    obs, _, _ = follow(env, obs, [(eef_c[0], quat_c[0], GRIP_OPEN, 0)], max_steps_per_target=80, frames=frames)
+    obs, _, _ = follow(
+        env, obs, [(eef_c[0], quat_c[0], GRIP_OPEN, 0)], max_steps_per_target=80, frames=frames
+    )
     n_lead = len(frames)
     success, err = False, []
     for i in range(len(tc)):
@@ -164,7 +182,6 @@ def main() -> None:
         success = success or bool(env.env._check_success())
 
     # S3: gripper point vs the pick object's rim at the first closed frame
-    g = int(np.argmax(closed)) if closed.any() else None
     s3 = None
     if g is not None:
         r = np.linalg.norm(pos[g, :2] - pick_r)
@@ -176,8 +193,16 @@ def main() -> None:
     imageio.mimsave(out / "replay.mp4", frames, fps=CONTROL_HZ)
     if args.capture != "none":
         side_by_side(args.capture, hand, run, t, t_src, frames[n_lead:], out / "side_by_side.mp4")
-    np.savez(out / "traj_sim.npz", t=tc, eef=eef_c, quat=quat_c, grip=grip_c, pick=pick_sim,
-             place=np.r_[place_sim_xy, place_sim0[2]], task=args.task)
+    np.savez(
+        out / "traj_sim.npz",
+        t=tc,
+        eef=eef_c,
+        quat=quat_c,
+        grip=grip_c,
+        pick=pick_sim,
+        place=np.r_[place_sim_xy, place_sim0[2]],
+        task=args.task,
+    )
     res = {
         "success": success,
         "orient": args.orient,
@@ -189,6 +214,7 @@ def main() -> None:
         "task": args.task,
         "real_pick_place_m": float(np.linalg.norm(place_r - pick_r)),
         "s3": s3,
+        "anchor_shift_m": anchor.tolist(),
     }
     (out / "replay.json").write_text(json.dumps(res, indent=1))
     print(json.dumps(res, indent=1))
@@ -212,7 +238,9 @@ def side_by_side(capture: str, hand: dict, run: slice, t: np.ndarray, tc: np.nda
                 for p in (4, 8):
                     cv2.circle(img, (int(kp[p, 0]), int(kp[p, 1])), 12, (0, 255, 0), -1)
             h = 256
-            phone[j] = cv2.cvtColor(cv2.resize(img, (int(img.shape[1] * h / img.shape[0]), h)), cv2.COLOR_BGR2RGB)
+            phone[j] = cv2.cvtColor(
+                cv2.resize(img, (int(img.shape[1] * h / img.shape[0]), h)), cv2.COLOR_BGR2RGB
+            )
         i += 1
     out = []
     for c, sim in enumerate(sim_frames[: len(tc)]):

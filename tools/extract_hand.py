@@ -21,7 +21,9 @@ from handsim.io.stray import load_stray
 warnings.filterwarnings("ignore")
 
 
-def depth_offset(kp_cam: np.ndarray, depth: np.ndarray, conf: np.ndarray, K_d: np.ndarray, max_diff: float = 0.06):
+def depth_offset(
+    kp_cam: np.ndarray, depth: np.ndarray, conf: np.ndarray, K_d: np.ndarray, max_diff: float = 0.06
+):
     """Median LiDAR minus predicted depth over keypoints that land on valid, nearby depth. None if < 4 agree."""
     u = np.round(kp_cam[:, 0] / kp_cam[:, 2] * K_d[0, 0] + K_d[0, 2]).astype(int)
     v = np.round(kp_cam[:, 1] / kp_cam[:, 2] * K_d[1, 1] + K_d[1, 2]).astype(int)
@@ -83,7 +85,10 @@ def main() -> None:
         kp_world[r] = kp_cam @ T[:3, :3].T + T[:3, 3]
         kp_2d[r], found[r] = uv, True
         if r % 50 == 0:
-            print(f"{r}/{len(rows)} found {found[: r + 1].mean():.2f} depth_ok {depth_ok[: r + 1].mean():.2f}", flush=True)
+            print(
+                f"{r}/{len(rows)} found {found[: r + 1].mean():.2f} depth_ok {depth_ok[: r + 1].mean():.2f}",
+                flush=True,
+            )
 
     np.savez(
         out / "hand.npz",
@@ -95,8 +100,10 @@ def main() -> None:
         rows=np.array(list(rows)),
         t=cap.timestamps[list(rows)],
     )
-    print(f"found {found.mean():.2f}, depth-corrected {depth_ok.mean():.2f}, "
-          f"median |offset| {np.nanmedian(np.abs(offsets)) * 100:.1f} cm")
+    print(
+        f"found {found.mean():.2f}, depth-corrected {depth_ok.mean():.2f}, "
+        f"median |offset| {np.nanmedian(np.abs(offsets)) * 100:.1f} cm"
+    )
 
 
 if __name__ == "__main__":
