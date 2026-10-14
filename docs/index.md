@@ -2,18 +2,20 @@
 
 Start here. Every other doc is linked from this page. Update the status board at the end of each work unit.
 
-## Status board (2026-10-14)
+## Status board (2026-10-14 evening)
 
 | Area | State | Next action | Owner |
 |---|---|---|---|
 | Brief | saved: docs/challenge.md | | done |
 | Research | done: docs/deep-research.md (verified), research.md (first pass) | user picks a plan | user |
 | LIBERO on laptop (S1) | **works**: 42 steps/s at 256 px; mujoco 3.3.7 | | done |
-| Task | libero_90 #9 KITCHEN_SCENE1 put the black bowl on the plate | | done |
-| Scripted oracle | 50/50 stored inits, 34/50 wider placements | | done |
-| Hand tracker | WiLoR-mini: 38 ms/frame, 1.5 GB | S3 on a real take | Claude |
-| Pipeline (scene, extract_hand, replay) | built; replay passes on a synthetic hand | first real take (docs/recording.md) | user records |
-| Direction | open: options in ideas.md | pick a direction | user |
+| Task | libero_90 #72 put the white mug on the plate (D2) | | done |
+| Scripted oracle | bowl 50/50 stored inits; mug grasp sweep 17/17; rim angle sweep: handle arc 88-127 deg | | done |
+| Real takes | 5 takes (hotel, jug + plate); S2 drift PASS, S3 PASS (take04/05) | | done |
+| Replay of real takes | 3/5 succeed with grasp anchor (D3); take01, take05 fail | take05 cause open | Claude |
+| Demo multiplier | 58% yield at default layout (D4); 200 demos generating | train ACT | Claude |
+| Policy | not trained | ACT locally, eval 100 episodes; zero-shot SmolVLA baseline | Claude |
+| README | not started | Thu/Fri | Claude + user |
 
 ## Documents
 

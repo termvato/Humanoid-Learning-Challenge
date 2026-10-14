@@ -30,6 +30,18 @@ def warp(eef: np.ndarray, grip: np.ndarray, d_pick: np.ndarray, d_place: np.ndar
     return eef + (1 - w) * d_pick + w * d_place
 
 
+def centred_place_shift(
+    eef: np.ndarray, grip: np.ndarray, pick_xy: np.ndarray, place_xy: np.ndarray
+) -> np.ndarray:
+    """xy shift for the release part of the path so the held object's centre lands on place_xy. The object is
+    assumed rigid in the gripper from the grasp (first closed step) to the release (last closed step); pick_xy is
+    its centre at the grasp, in the same frame as eef. Returns a 3-vector (z = 0)."""
+    closed = np.flatnonzero(grip == GRIP_CLOSE)
+    g, r = closed[0], closed[-1]
+    held = pick_xy - eef[g, :2]  # object centre relative to the gripper
+    return np.r_[place_xy - (eef[r, :2] + held), 0.0]
+
+
 def quat2axisangle(q: np.ndarray) -> np.ndarray:
     """xyzw -> axis-angle, as LeRobot's LIBERO processor does (angle in [0, pi])."""
     q = q * (1 if q[3] >= 0 else -1)

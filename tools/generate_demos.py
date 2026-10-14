@@ -9,9 +9,13 @@ import argparse
 import json
 import multiprocessing as mp
 import shutil
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures.process import BrokenProcessPool
 from pathlib import Path
 
 import numpy as np
+
+CHUNK = 4  # rollouts per task
 
 
 def sample(rng, pick0, place0, radius: float, min_gap: float = 0.16):
@@ -23,20 +27,28 @@ def sample(rng, pick0, place0, radius: float, min_gap: float = 0.16):
 
 
 def worker(args) -> list:
-    task_name, trajs, seeds, radius, tmp = args
-    from handsim.augment import place, rollout, warp
-    from handsim.sim import TASKS, make_env
+    task_name, trajs, seeds, radius, tmp, around, centre = args
+    from handsim.augment import centred_place_shift, place, rollout, warp
+    from handsim.sim import TASKS, make_env, obj_pose
 
     task = TASKS[task_name]
-    env, _, _ = make_env(task_id=task.task_id)
+    env, _, obs0 = make_env(task_id=task.task_id)
+    default = obj_pose(obs0, task.pick)[0][:2], obj_pose(obs0, task.place)[0][:2]
     out = []
     for s in seeds:
         rng = np.random.default_rng(s)
         tr = trajs[s % len(trajs)]
-        a, b = sample(rng, tr["pick"][:2], tr["place"][:2], radius)
+        centres = default if around == "default" else (tr["pick"][:2], tr["place"][:2])
+        a, b = sample(rng, *centres, radius)
         env.reset()
         obs = place(env, task, a, b)
-        eef = warp(tr["eef"], tr["grip"], np.r_[a - tr["pick"][:2], 0], np.r_[b - tr["place"][:2], 0])
+        d_pick = np.r_[a - tr["pick"][:2], 0]
+        if centre:
+            # the grasp moves with the object (d_pick), so the held object starts at a; centre it on b
+            d_place = centred_place_shift(tr["eef"] + d_pick, tr["grip"], a, b) + d_pick
+        else:
+            d_place = np.r_[b - tr["place"][:2], 0]
+        eef = warp(tr["eef"], tr["grip"], d_pick, d_place)
         ok, frames = rollout(env, obs, eef, tr["quat"], tr["grip"], record=True)
         row = {
             "seed": int(s),
@@ -63,6 +75,15 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     ap.add_argument("--workers", type=int, default=24)
     ap.add_argument("--task", default="mug", help="key of handsim.sim.TASKS")
+    ap.add_argument(
+        "--around",
+        choices=["default", "traj"],
+        default="default",
+        help="sample placements around the task's default object positions (what LIBERO evaluates) or the replay's",
+    )
+    ap.add_argument(
+        "--no-centre", action="store_true", help="keep the human's release point instead of centring"
+    )
     args = ap.parse_args()
     out = Path(args.out)
     tmp = out.parent / (out.name + "_tmp")
@@ -70,22 +91,35 @@ def main() -> None:
     trajs = [dict(np.load(t)) for t in args.traj]
 
     rows, next_seed = [], 0
-    with mp.get_context("spawn").Pool(args.workers) as pool:
-        while sum(r["success"] for r in rows) < args.n:
-            need = args.n - sum(r["success"] for r in rows)
-            rate = max(0.2, np.mean([r["success"] for r in rows])) if rows else 0.5
-            batch = int(need / rate * 1.1) + args.workers
-            seeds = np.arange(next_seed, next_seed + batch)
-            next_seed += batch
-            chunks = [
-                (args.task, trajs, seeds[w :: args.workers].tolist(), args.radius, str(tmp))
-                for w in range(args.workers)
-            ]
-            for res in pool.imap_unordered(worker, chunks):
-                rows += res
-            print(f"tried {len(rows)}, success {sum(r['success'] for r in rows)}", flush=True)
-            if len(rows) > 20 * args.n:
-                break
+    # small chunks in a process pool: a worker that dies (seen with MuJoCo/EGL) loses only its chunk, which is
+    # logged as failed, and the pool is rebuilt
+    ctx = mp.get_context("spawn")
+    pool = ProcessPoolExecutor(args.workers, mp_context=ctx)
+    while sum(r["success"] for r in rows) < args.n and len(rows) <= 20 * args.n:
+        need = args.n - sum(r["success"] for r in rows)
+        rate = max(0.2, np.mean([r["success"] for r in rows])) if rows else 0.5
+        batch = int(need / rate * 1.1) + args.workers
+        seeds = np.arange(next_seed, next_seed + batch).tolist()
+        next_seed += batch
+        chunks = [seeds[k : k + CHUNK] for k in range(0, len(seeds), CHUNK)]
+        futs = {
+            pool.submit(
+                worker, (args.task, trajs, c, args.radius, str(tmp), args.around, not args.no_centre)
+            ): c
+            for c in chunks
+        }
+        broken = False
+        for f in as_completed(futs):
+            try:
+                rows += f.result()
+            except Exception as e:  # noqa: BLE001
+                broken = broken or isinstance(e, BrokenProcessPool)
+                rows += [{"seed": int(x), "success": False, "error": type(e).__name__} for x in futs[f]]
+        if broken:
+            pool.shutdown(cancel_futures=True)
+            pool = ProcessPoolExecutor(args.workers, mp_context=ctx)
+        print(f"tried {len(rows)}, success {sum(r['success'] for r in rows)}", flush=True)
+    pool.shutdown()
 
     from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
@@ -130,10 +164,13 @@ def main() -> None:
         "tried": len(rows),
         "success": sum(r["success"] for r in rows),
         "success_rate": float(np.mean([r["success"] for r in rows])),
+        "worker_errors": sum("error" in r for r in rows),
         "kept": len(kept),
         "radius": args.radius,
         "sources": args.traj,
         "task": args.task,
+        "around": args.around,
+        "centre_on_place": not args.no_centre,
     }
     (out / "attempts.json").write_text(json.dumps({"summary": summary, "rows": rows}, indent=1))
     print(json.dumps(summary, indent=1))
