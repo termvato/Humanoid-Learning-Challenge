@@ -15,6 +15,8 @@ from pathlib import Path
 
 import numpy as np
 
+# mean pick / place xy over LIBERO's 50 stored init states (measured; each spans ~4.7 cm, mug yaw fixed)
+INIT_MEAN = {"mug": (np.array([-0.100, -0.153]), np.array([0.149, 0.000]))}
 CHUNK = 8  # rollouts per task; each task gets a fresh process (env.close() leaks ~1.5 GB)
 
 
@@ -33,7 +35,10 @@ def worker(args) -> list:
 
     task = TASKS[task_name]
     env, _, obs0 = make_env(task_id=task.task_id)
-    default = obj_pose(obs0, task.pick)[0][:2], obj_pose(obs0, task.place)[0][:2]
+    if around == "init_mean":
+        default = INIT_MEAN[task_name]
+    else:
+        default = obj_pose(obs0, task.pick)[0][:2], obj_pose(obs0, task.place)[0][:2]
     out = []
     for s in seeds:
         rng = np.random.default_rng(s)
@@ -82,9 +87,9 @@ def main() -> None:
     ap.add_argument("--task", default="mug", help="key of handsim.sim.TASKS")
     ap.add_argument(
         "--around",
-        choices=["default", "traj"],
+        choices=["default", "init_mean", "traj"],
         default="default",
-        help="sample placements around the task's default object positions (what LIBERO evaluates) or the replay's",
+        help="sample around init state 0's object positions, the mean over all 50 init states, or the replay's",
     )
     ap.add_argument(
         "--no-centre", action="store_true", help="keep the human's release point instead of centring"

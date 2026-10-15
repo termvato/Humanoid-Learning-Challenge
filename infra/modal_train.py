@@ -49,7 +49,7 @@ def train(dataset: str, run: str, args: str) -> str:
     log = VOL / "train" / f"{run}.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     with open(log, "w") as f:
-        p = subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT)
+        p = subprocess.run(cmd, check=False, stdout=f, stderr=subprocess.STDOUT)
     vol.commit()
     tail = log.read_text()[-3000:]
     if p.returncode:
