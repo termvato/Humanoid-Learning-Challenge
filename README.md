@@ -16,11 +16,13 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | What | Data | Success |
 |---|---|---|
 | Open-loop replay of each phone take (own layout) | 5 takes | 3/5 takes |
-| Demo multiplier yield (replay at new object positions, kept only if the sim says success) | 3 takes | 60% of rollouts |
+| Demo multiplier yield (replay at new object positions, kept only if the sim says success) | 3 takes | 60-66% of rollouts |
 | SmolVLA `lerobot/smolvla_libero`, zero-shot (no own data) | none | 2% |
-| ACT, 30k steps | 200 demos from 3 takes | **20%** |
-| ACT, 30k steps, noisy demos (DART) | 200 demos from 3 takes | 16% |
-| SmolVLA fine-tuned from `smolvla_libero`, 20k steps | 200 demos from 3 takes | TBD |
+| ACT, 30k steps, 20 actions per call | 200 demos from 3 takes | 20% |
+| same ACT checkpoint, 5 actions per call | 200 demos from 3 takes | 36% |
+| same ACT checkpoint, temporal ensembling (1 action per call) | 200 demos from 3 takes | 36% |
+| ACT, 30k steps, noisy demos (DART), 20 actions per call | 200 demos from 3 takes | 16% |
+| **SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call** | 200 demos from 3 takes | **48%** (50 episodes) |
 
 ![ACT training curve](docs/media/act_training_curve.png)
 
