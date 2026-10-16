@@ -2,20 +2,16 @@
 
 Start here. Every other doc is linked from this page. Update the status board at the end of each work unit.
 
-## Status board (2026-10-14 evening)
+## Status board (2026-10-16 morning)
 
 | Area | State | Next action | Owner |
 |---|---|---|---|
-| Brief | saved: docs/challenge.md | | done |
-| Research | done: docs/deep-research.md (verified), research.md (first pass) | user picks a plan | user |
-| LIBERO on laptop (S1) | **works**: 42 steps/s at 256 px; mujoco 3.3.7 | | done |
-| Task | libero_90 #72 put the white mug on the plate (D2) | | done |
-| Scripted oracle | bowl 50/50 stored inits; mug grasp sweep 17/17; rim angle sweep: handle arc 88-127 deg | | done |
-| Real takes | 5 takes (hotel, jug + plate); S2 drift PASS, S3 PASS (take04/05) | | done |
-| Replay of real takes | 3/5 succeed with grasp anchor (D3); take01, take05 fail | take05 cause open | Claude |
-| Demo multiplier | 58% yield at default layout (D4); 200 demos generating | train ACT | Claude |
-| Policy | not trained | ACT locally, eval 100 episodes; zero-shot SmolVLA baseline | Claude |
-| README | not started | Thu/Fri | Claude + user |
+| Brief, research, task (D2) | done | | done |
+| Real takes and replay | 5 takes, 3/5 replay with grasp anchor (D3); take05 cause open | | done |
+| Demo multiplier | clean v3 yield: phone 87%, oracle 97% (D4) | | done |
+| Policies | best: SmolVLA 5k 46%; ACT 36% (5 actions/call); ACT on oracle demos 92% | ACT on 400 clean phone demos, then retimed spike | Claude |
+| Modal | blocked by workspace spend limit | user raises limit for SmolVLA 20k | user |
+| README | draft with results | final figures, review, push | Claude + user |
 
 ## Documents
 

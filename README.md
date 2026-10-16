@@ -24,6 +24,10 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | ACT, 30k steps, noisy demos (DART), 20 / 5 actions per call | 200 demos from 3 takes | 16% / 14% |
 | SmolVLA fine-tuned 5k steps on noisy demos, 10 actions per call | 200 demos from 3 takes | 32% (50 episodes) |
 | **SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call** | 200 demos from 3 takes | **46%** (48% on a first 50) |
+| Reference: ACT on demos from a scripted grasp (true mug pose), same multiplier and recipe, 5 actions per call | 400 scripted demos | 92% |
+
+The scripted reference shows the ACT recipe can solve this task with this much data: the gap to 36% is in the
+human-derived trajectories, not the learner.
 
 ![ACT training curve](docs/media/act_training_curve.png)
 
@@ -100,12 +104,12 @@ MUJOCO_GL=egl .venv/bin/python tools/replay.py data/raw/take04 outputs/take04 --
 
 # 2. demos from the takes that replay successfully
 MUJOCO_GL=egl .venv/bin/python tools/generate_demos.py outputs/take0{2,3,4}/traj_sim.npz \
-    --n 200 --radius 0.035 --around init_mean --noise 0.2 --out data/demos/real3
+    --n 400 --radius 0.035 --around init_mean --out data/demos/real3
 
 # 3. train and evaluate
 .venv/bin/lerobot-train --dataset.repo_id=local/real3 --dataset.root=data/demos/real3 --policy.type=act \
     --policy.chunk_size=50 --policy.n_action_steps=20 --batch_size=32 --steps=30000 --policy.push_to_hub=false
-tools/eval_policy.sh act outputs/train/<run>/checkpoints/030000/pretrained_model 100
+tools/eval_policy.sh act outputs/train/<run>/checkpoints/030000/pretrained_model 100 act --policy.n_action_steps=5
 ```
 
 Tests: `.venv/bin/python -m pytest` (geometry, augmentation, Stray loader).
