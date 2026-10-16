@@ -7,7 +7,8 @@ multiplies them in simulation, and trains policies (ACT and the SmolVLA VLA) on 
 **Headline:** policies trained only on demos from three phone takes put the mug on the plate in LIBERO's standard
 episodes: SmolVLA 46% (52% on a retrain), ACT 41% averaged over three training seeds (64%, 36%, 24%). The same
 recipes on scripted demos reach 84% and 92%, so the remaining gap is in the human-derived trajectories, and the
-seed spread shows how unstable ACT is on this data. A world model trained on the same demos predicts the robot's
+seed spread shows how unstable ACT is on this data. The best single run, 70%, opens the gripper 2 cm above the
+plate instead of after pressing the mug down; it is one seed, so it needs repeats before it counts as a fix. A world model trained on the same demos predicts the robot's
 cameras 2 s ahead and, once given no-grasp episodes, imagines that the mug moves only while held, including for a
 release it never saw.
 
@@ -35,7 +36,7 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | ACT, 30k steps, 5 actions per call | 400 demos from 3 takes | 34% |
 | **ACT, same, with my pauses removed from the takes, 3 training seeds** | 400 demos from 3 takes | **64% / 36% / 24% (mean 41%)** |
 | ACT, pauses removed, wrist held at the grasp orientation | 400 demos from 3 takes | 40% |
-| ACT, pauses removed, gripper opens 2 cm above the set-down point, 10k steps | 400 demos from 3 takes | 44% |
+| ACT, pauses removed, gripper opens 2 cm above the set-down point, 10k / 30k steps | 400 demos from 3 takes | 44% / **70%** (one seed) |
 | SmolVLA, same recipe, 5k steps | 400 demos from 3 takes | 0% |
 | SmolVLA, same recipe, 5k / 10k steps | 400 demos, pauses removed | 0% / 1% |
 | SmolVLA, same recipe, 10k steps | 400 demos, pauses removed, wrist held still | 0% (50 episodes) |
@@ -54,8 +55,8 @@ it here (0%). The cause is not found.
 **Caveats.** Checkpoints and the number of actions per policy call were chosen on the same 50 start states the
 table reports, so the best rows are optimistic. Training seeds matter more than any data change I tried: the
 pauses-removed recipe gives 64%, 36% and 24% with three seeds, and the 64% checkpoint drops to 36% at 10 actions per
-call and 8% with temporal ensembling. The as-recorded (34%), still-wrist (40%) and release-early (44%) rows are
-single seeds, so their differences from the 41% mean are within that noise. "Pauses make the policy stall" is my reading of the
+call and 8% with temporal ensembling. The as-recorded (34%), still-wrist (40%) and release-early (44% / 70%) rows
+are single seeds, so their differences from the 41% mean may be noise. "Pauses make the policy stall" is my reading of the
 failure videos, not a measured cause: retiming also made episodes shorter.
 
 The scripted reference shows the ACT recipe can solve this task with this much data, so the gap is in the
@@ -63,7 +64,7 @@ human-derived trajectories. My hand is still 43-65% of the time in the takes (sc
 pauses; the first seed went from 34% to 64%, but across three seeds the mean is 41%, so the gain is uncertain.
 The 64% policy's failures carry the mug over the plate and hover without letting go: my hand presses the mug onto
 the plate before opening, while the scripted demos open just above it. Opening 2 cm higher (`--release-early`)
-gave 44% at 10k steps.
+gave 44% at 10k steps and 70% at 30k, one seed; given the 24-64% seed spread above, more seeds are needed.
 
 ![ACT training curve](docs/media/act_training_curve.png)
 
