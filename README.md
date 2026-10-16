@@ -43,7 +43,8 @@ from scratch gives 52%. On the later 400-demo sets (sampled around the mean of L
 around one start state) it scores 0-1%, including after 10k steps: it reaches the mug, presses on it and twists
 the wrist. ACT trains fine on those same sets (34% and 64%), and SmolVLA reaches 84% on scripted demos made with the same
 settings, so the problem is specific to SmolVLA on the 400 demos from my takes. The cause is not found. Another applicant hit the same
-failure and traced it to the human wrist turning more than in LIBERO's demos (`docs/others.md`). Not finished
+failure and traced it to the human wrist turning more than in LIBERO's demos
+([andrealo20/phone-to-panda](https://github.com/andrealo20/phone-to-panda)). Not finished
 before the deadline: a still-wrist variant (`tools/retime.py --hold-wrist`), a release-early variant (the 64% ACT's
 failures hover over the plate without letting go; `--release-early`) and two more seeds of the 64% ACT.
 
@@ -186,4 +187,4 @@ Tests: `.venv/bin/python -m pytest` (geometry, augmentation, Stray loader).
 | `tools/` | the pipeline steps above, figures, eval |
 | `infra/` | Modal training app and launcher, world model (`modal_world.py`) |
 | `spikes/` | tests with rules written before running (LIBERO speed, oracle grasps, rim sweep) |
-| `docs/` | brief, decisions (D1-D5), spike results, other submissions compared (`others.md`), research notes |
+| `docs/` | brief, decisions (D1-D5), spike results, recording guide, README media |

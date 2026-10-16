@@ -98,7 +98,7 @@ Result: 64% vs 34% (100 episodes each). PASS (+30 points): retiming is part of t
 - 5k steps at batch 16 is 1.2 epochs of the 400-demo sets vs 2.1 of the 200-demo set. 10k/15k/20k pending.
 
 ### Spike: still wrist (rule written before running)
-Human-derived demos turn the wrist ~6x more than scripted ones; andrealo20 (docs/others.md) traced the same
+Human-derived demos turn the wrist ~6x more than scripted ones; andrealo20 (github.com/andrealo20/phone-to-panda) traced the same
 "hover and push" SmolVLA failure to this. Sources: retimed takes with the gripper held at its grasp orientation
 (`tools/retime.py --hold-wrist`), 400 demos, SmolVLA 10k and ACT 30k on Modal. Rule: a fix if SmolVLA beats 46%
 or ACT beats 64% by 10+ points (100 episodes); otherwise reported as no effect.
