@@ -13,6 +13,7 @@ Usage:
 
 import shlex
 import subprocess
+import time
 from pathlib import Path
 
 import modal
@@ -49,7 +50,10 @@ def train(dataset: str, run: str, args: str) -> str:
     log = VOL / "train" / f"{run}.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     with open(log, "w") as f:
-        p = subprocess.run(cmd, check=False, stdout=f, stderr=subprocess.STDOUT)
+        p = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
+        while p.poll() is None:  # commit checkpoints as they appear, so a killed job keeps them
+            time.sleep(600)
+            vol.commit()
     vol.commit()
     tail = log.read_text()[-3000:]
     if p.returncode:
