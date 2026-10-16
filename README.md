@@ -21,7 +21,8 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | ACT, 30k steps, 20 actions per call | 200 demos from 3 takes | 20% |
 | same ACT checkpoint, 5 actions per call | 200 demos from 3 takes | 36% |
 | same ACT checkpoint, temporal ensembling (1 action per call) | 200 demos from 3 takes | 36% |
-| ACT, 30k steps, noisy demos (DART), 20 actions per call | 200 demos from 3 takes | 16% |
+| ACT, 30k steps, noisy demos (DART), 20 / 5 actions per call | 200 demos from 3 takes | 16% / 14% |
+| SmolVLA fine-tuned 5k steps on noisy demos, 10 actions per call | 200 demos from 3 takes | 32% (50 episodes) |
 | **SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call** | 200 demos from 3 takes | **48%** (50 episodes) |
 
 ![ACT training curve](docs/media/act_training_curve.png)
@@ -66,7 +67,8 @@ iPhone (Stray Scanner: RGB 1920x1440 @ 60 fps, LiDAR depth, ARKit poses)
   off-centre set-downs missed the sim plate (yield 40% -> 60%).
 - **DART noise.** Clean replays never show recovering from an error, and ACT's failures were missed grasps it
   could not recover from. The noisy variant perturbs executed actions and records the clean corrective action.
-  It did not help ACT here (16% vs 20%, inside the noise).
+  It hurt both learners: ACT 14% vs 36% and SmolVLA 32% vs 48% (same settings, clean vs noisy). Noise 0.2
+  is about 1 cm of jitter per step; the recorded motion becomes jerky and harder to imitate.
 - **Two policy families.** ACT (small, trains on the laptop in about an hour) and SmolVLA (a 450M VLA, fine-tuned
   from the LIBERO checkpoint on a Modal L4) on the same data.
 

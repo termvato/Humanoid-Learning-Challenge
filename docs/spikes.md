@@ -63,3 +63,5 @@ All on libero_90 #72 stored init states, 100 episodes unless noted (95% CI about
 - Modal: `modal run --detach` jobs were cancelled when the laptop lost its connection; spawned calls on a
   deployed app survive. Then the workspace spend limit stopped all jobs mid-run; only checkpoints already
   committed survived (SmolVLA 5k x2, ACT v3 10k).
+- DART noise hurts both learners: ACT (5 actions/call) 36% clean vs 14% noisy; SmolVLA 5k (10 actions/call,
+  50 episodes) 48% clean vs 32% noisy. ACT temporal ensembling 36%, same as 5 actions/call.
