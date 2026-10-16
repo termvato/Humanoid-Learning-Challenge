@@ -96,3 +96,17 @@ Result: 64% vs 34% (100 episodes each). PASS (+30 points): retiming is part of t
   weights have no NaNs and moved from the base as much as the working run.
 - Behaviour: reaches the mug, presses on it, then the wrist slowly twists and tilts; the mug is never lifted.
 - 5k steps at batch 16 is 1.2 epochs of the 400-demo sets vs 2.1 of the 200-demo set. 10k/15k/20k pending.
+
+### Spike: still wrist (rule written before running)
+Human-derived demos turn the wrist ~6x more than scripted ones; andrealo20 (docs/others.md) traced the same
+"hover and push" SmolVLA failure to this. Sources: retimed takes with the gripper held at its grasp orientation
+(`tools/retime.py --hold-wrist`), 400 demos, SmolVLA 10k and ACT 30k on Modal. Rule: a fix if SmolVLA beats 46%
+or ACT beats 64% by 10+ points (100 episodes); otherwise reported as no effect.
+
+### Spike: action-conditioned world model (rule written before running)
+`infra/modal_world.py`: SD-VAE latents (128 px, both cameras), FiLM conv net predicts 0.2 s ahead from two frames
+and 4 actions, trained unrolled on retimed, as-recorded and scripted demos; 1 in 20 episodes held out.
+Rules: (1) at 1 s ahead, its latent error is below "nothing moves" (copy last frame) on held-out episodes;
+(2) imagining a held-out demo's own actions ends with the mug on the plate (classifier on real frames) in 70%+
+of episodes, and the same actions with the gripper never closing in 30% or fewer. Both must hold to call it a
+world model that understands grasping; otherwise reported as what it got right and wrong.
