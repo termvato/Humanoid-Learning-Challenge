@@ -129,3 +129,10 @@ never closing (`--keep-failures`; the mug stays put), retrain wm1's recipe (wm2)
 wm1_cls2. Counterfactuals on held-out normal demos. Rules: own actions end "on plate" 70%+; gripper never closing
 30% or less (now in distribution); gripper opening halfway through the carry 30% or less (in no training episode:
 the real test of "the mug moves only while held").
+
+### Spike: release early (rule written before running)
+ACT 64% failures (videos): carries the mug over the plate and hovers without opening. Demos from the takes open
+only after pressing the mug onto the plate (eef z 0.531 at release, 3 cm descent in the last 15 steps; take04 even
+opens after lifting again) while scripted demos open right after a fast descent and drop the mug ~2 cm (z 0.586).
+Variant: retimed takes with the gripper opening 2 cm above the set-down point (`tools/retime.py --release-early`),
+400 demos, same ACT recipe on Modal, 100 episodes at 5 actions per call. Rule: a fix if it beats 64% by 10+ points.

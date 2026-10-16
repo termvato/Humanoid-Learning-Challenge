@@ -60,6 +60,29 @@ def retime(eef: np.ndarray, grip: np.ndarray, min_step: float = 0.002, dwell: in
     return np.array(out)
 
 
+def release_early(eef: np.ndarray, grip: np.ndarray, dz: float = 0.02) -> np.ndarray:
+    """Gripper track that opens once the hand is within dz (m) above where it sets the object down, instead of
+    after pressing it onto the target (or, in take04, after lifting again). The set-down point is the lowest point
+    in the second half of the carry; a carry lower than 2 dz above it opens halfway down. The object then drops the
+    last dz, as in the scripted demos. Unchanged if there is no grasp and release."""
+    closes = np.flatnonzero((grip[:-1] != GRIP_CLOSE) & (grip[1:] == GRIP_CLOSE)) + 1
+    opens = np.flatnonzero((grip[:-1] == GRIP_CLOSE) & (grip[1:] != GRIP_CLOSE)) + 1
+    if len(opens) == 0 or len(closes) == 0 or closes[-1] >= opens[-1]:
+        return grip
+    g, r = closes[-1], opens[-1]
+    mid = (g + r) // 2
+    m = mid + int(np.argmin(eef[mid:r, 2]))  # set-down point
+    peak = eef[g:m + 1, 2].max()
+    thr = eef[m, 2] + min(dz, (peak - eef[m, 2]) / 2)
+    high = np.flatnonzero(eef[g:m, 2] > thr)
+    k = g + (high[-1] + 1 if len(high) else 0)
+    if k <= g:
+        return grip
+    out = grip.copy()
+    out[k:r] = grip[r]
+    return out
+
+
 def quat2axisangle(q: np.ndarray) -> np.ndarray:
     """xyzw -> axis-angle, as LeRobot's LIBERO processor does (angle in [0, pi])."""
     q = q * (1 if q[3] >= 0 else -1)

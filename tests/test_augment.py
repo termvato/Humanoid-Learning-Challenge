@@ -1,6 +1,6 @@
 import numpy as np
 
-from handsim.augment import centred_place_shift, retime, shift_profile, warp
+from handsim.augment import centred_place_shift, release_early, retime, shift_profile, warp
 from handsim.sim import GRIP_CLOSE, GRIP_OPEN
 
 
@@ -37,3 +37,24 @@ def test_retime_drops_pauses_keeps_grip_dwell():
 
 def test_centred_place_shift_without_grasp_is_zero():
     assert np.allclose(centred_place_shift(np.zeros((5, 3)), np.full(5, GRIP_OPEN), np.zeros(2), np.ones(2)), 0)
+
+
+def test_release_early_opens_above_the_set_down_height():
+    eef = np.zeros((40, 3))
+    eef[:, 2] = 0.2
+    eef[25:31, 2] = np.linspace(0.2, 0.1, 6)  # final descent, released at step 31
+    eef[31:, 2] = 0.1
+    grip = np.full(40, GRIP_OPEN)
+    grip[10:31] = GRIP_CLOSE
+    out = release_early(eef, grip, 0.02)
+    k = np.flatnonzero(out[10:] != GRIP_CLOSE)[0] + 10
+    assert eef[k, 2] <= 0.12 + 1e-9 < eef[k - 1, 2] and k < 31 and np.all(out[10:k] == GRIP_CLOSE)
+
+
+def test_release_early_keeps_the_grasp_on_a_low_carry():
+    eef = np.zeros((30, 3))
+    eef[10:20, 2] = 0.01  # carried only 1 cm above the set-down height
+    grip = np.full(30, GRIP_OPEN)
+    grip[5:20] = GRIP_CLOSE
+    out = release_early(eef, grip, 0.02)
+    assert out[5] == GRIP_CLOSE and out[12] == GRIP_CLOSE
