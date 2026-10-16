@@ -32,7 +32,7 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call | 200 demos from 3 takes | 46% (48% on a first 50) |
 | same, retrained from scratch to check it | 200 demos from 3 takes | 52% (50 episodes) |
 | ACT, 30k steps, 5 actions per call | 400 demos from 3 takes | 34% |
-| **ACT, same, with the human's pauses removed from the takes** | 400 demos from 3 takes | **64%** |
+| **ACT, same, with my pauses removed from the takes** | 400 demos from 3 takes | **64%** |
 | SmolVLA, same recipe, 5k steps | 400 demos from 3 takes | 0% |
 | SmolVLA, same recipe, 5k / 10k steps | 400 demos, pauses removed | 0% / 1% |
 | Reference: ACT on demos from a scripted grasp (true mug pose), same multiplier and recipe, 5 actions per call | 400 scripted demos | 92% |
@@ -116,8 +116,8 @@ iPhone (Stray Scanner: RGB 1920x1440 @ 60 fps, LiDAR depth, ARKit poses)
   viewing ray to agree with LiDAR. The hand is found in 100% of frames where it is in view (test S3).
 - **Grasp anchor.** Raw retargeting failed 2/2: the grasp landed 6-8 cm from the mug centre (rim at 4 cm). Hand
   tracking is off by a few cm, mostly as a constant bias, and a rim pinch needs about 1 cm. At the moment the
-  fingers close we know they are on the rim, so the whole track is shifted by one vector to put that point on
-  the sim mug's rim (2-5 cm shifts). The human's carry and place keep their shape.
+  fingers close I know they are on the rim, so the whole track is shifted by one vector to put that point on
+  the sim mug's rim (2-5 cm shifts). My carry and place keep their shape.
 - **Handle arc.** A scripted sweep around the sim mug shows pinches between 90 and 125 deg fail: that is the
   handle. Grasps landing there are moved to the arc's edge.
 

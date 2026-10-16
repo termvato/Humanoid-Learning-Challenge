@@ -1,31 +1,35 @@
-# How to record a take (Stray Scanner, iPhone with LiDAR)
+# How I recorded the takes (Stray Scanner, iPhone with LiDAR)
 
-## Set up
-- Table clear, good even light, no strong sun patches.
-- A small bowl (sim bowl: 11 cm across, 5 cm tall) and a flat plate (sim: 14 cm across). Similar sizes help; exact match not needed.
-- Bowl and plate about 25-30 cm apart (the sim has 28 cm), plate to the right of the bowl as you face the table is fine; any direction works, the mapping turns it.
-- Use your **right hand**. No other hands in view.
+The five raw takes are in the [raw-takes-v1 release](https://github.com/termvato/Humanoid-Learning-Challenge/releases/tag/raw-takes-v1).
+
+## Set-up
+- A desk with even light, a small white jug (the sim task uses a white mug) and a flat plate (23 cm across; the
+  sim plate is 13.8 cm, which is why the demo multiplier centres the release on the plate).
+- Jug and plate about 25-30 cm apart. Any direction works: the real-to-sim mapping turns the scene so the
+  jug-to-plate direction matches the sim's.
+- Only my right hand in view.
 
 ## Phone
-- Hold the phone in your **left hand**, about 40-60 cm above the table, looking down at about 45 degrees, **landscape**. Keep it as still as you can (it does not need to be perfectly still; ARKit tracks it).
-- Stray Scanner: start recording, then wait **2 seconds** with only the table, bowl and plate in view (this is how the code finds them).
+- Held in my left hand, about 40-60 cm above the desk, looking down at about 45 degrees, landscape. Hand-held is
+  fine: ARKit tracks the phone pose and the table plane stays within 0.3 cm over a take (spike S2).
+- At the start of each take I kept only the desk, jug and plate in view for about 2 seconds; `tools/scene.py`
+  finds the table and both objects in those frames.
 
-## The motion (one take, about 8-10 s)
+## The motion (one take, about 8-15 s)
 1. Hand comes in from the side, open.
-2. **Pinch the bowl's rim** between thumb and index finger, on the side away from the plate (like a robot gripper: two fingers, not a whole-hand grab). Keep the back of your hand toward the phone.
-3. Lift about 10 cm, move over the plate, lower, release.
-4. Move the hand away, hold 2 seconds, stop.
-- Move a bit slower than natural. Keep thumb and index tips visible as much as possible.
+2. Grasp the jug. takes 1-3: a whole-hand grab of the body. takes 4-5: a two-finger pinch of the rim, like a
+   parallel gripper, with the back of my hand toward the phone. The pinch gives a much cleaner open/close signal.
+3. Lift, carry over the plate, set down, release.
+4. Move the hand away and hold still for 2 seconds.
 
 ## After
-- Measure the bowl-to-plate centre distance with a tape before you move them (test S2 compares it with LiDAR).
-- Export from Stray Scanner (Files / AirDrop) to the laptop: the folder with `rgb.mp4`, `depth/`, `confidence/`, `odometry.csv`, `camera_matrix.csv`.
-- Put it in `data/raw/take01/`.
+- Measured the jug-to-plate distance and the plate with a tape before moving them (spike S2 compares with LiDAR).
+- Exported the Stray Scanner folder (`rgb.mp4`, `depth/`, `confidence/`, `odometry.csv`, `camera_matrix.csv`,
+  `imu.csv`) to `data/raw/takeNN/`.
 
-## Run
+## Run one take
 ```
-.venv/bin/python tools/scene.py data/raw/take01 outputs/take01           # S2: table, bowl, plate
-.venv-hand/bin/python tools/extract_hand.py data/raw/take01 outputs/take01 # hand keypoints in world frame
-.venv/bin/python tools/replay.py data/raw/take01 outputs/take01           # Panda replay + side by side video
+.venv/bin/python tools/scene.py data/raw/take04 outputs/take04                 # table, plate, jug
+.venv-hand/bin/python tools/extract_hand.py data/raw/take04 outputs/take04     # hand keypoints in the world frame
+MUJOCO_GL=egl .venv/bin/python tools/replay.py data/raw/take04 outputs/take04 --task mug  # Panda replay + video
 ```
-Record 3-5 takes once take01 works (different bowl/plate positions), for more source demos.
