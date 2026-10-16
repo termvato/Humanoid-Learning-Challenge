@@ -110,3 +110,11 @@ Rules: (1) at 1 s ahead, its latent error is below "nothing moves" (copy last fr
 (2) imagining a held-out demo's own actions ends with the mug on the plate (classifier on real frames) in 70%+
 of episodes, and the same actions with the gripper never closing in 30% or fewer. Both must hold to call it a
 world model that understands grasping; otherwise reported as what it got right and wrong.
+Result wm1 (15k steps, H100, 24 min; 1200 episodes, 60 held out):
+- Rule 1 PASS. Latent error vs "nothing moves": 0.029 vs 0.228 at 0.2 s, 0.032 vs 0.410 at 1 s, 0.038 vs 0.489 at 2 s.
+- Rule 2 FAIL as written: imagined own actions end "on plate" 48% (needed 70%), gripper never closing 18% (pass).
+  The judge is the bottleneck: the classifier calls only 52% of the real final frames "on plate". Cause found
+  after the result: the 10 steps before the release (mug already on the plate, still held) were labelled "not on
+  plate" and look the same. Rerun of the classifier only, those frames left out (wm1_cls2), reported separately.
+- Videos: imagined rollouts with the demo's actions follow the real ones; with the gripper never closing the
+  image smears where the carry should be (never seen in training).

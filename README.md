@@ -120,6 +120,10 @@ iPhone (Stray Scanner: RGB 1920x1440 @ 60 fps, LiDAR depth, ARKit poses)
 uv venv .venv && uv pip install --python .venv/bin/python "lerobot[libero,smolvla]==0.6.1" "mujoco<3.4" -e .
 # hand tracker in its own env (torch cu126, wilor-mini): see docs/recording.md
 
+# 0. raw takes: download from the release and unpack into data/raw/
+#    https://github.com/termvato/Humanoid-Learning-Challenge/releases/tag/raw-takes-v1
+mkdir -p data/raw && for t in 1 2 3 4 5; do curl -sL https://github.com/termvato/Humanoid-Learning-Challenge/releases/download/raw-takes-v1/take0$t.tar.gz | tar -xz -C data/raw; done
+
 # 1. one take (Stray Scanner export) -> scene, hand, replay
 .venv/bin/python tools/scene.py data/raw/take04 outputs/take04
 .venv-hand/bin/python tools/extract_hand.py data/raw/take04 outputs/take04
