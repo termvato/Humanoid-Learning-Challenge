@@ -27,18 +27,20 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | same ACT checkpoint, temporal ensembling (1 action per call) | 200 demos from 3 takes | 36% |
 | ACT, 30k steps, noisy demos (DART), 20 / 5 actions per call | 200 demos from 3 takes | 16% / 14% |
 | SmolVLA fine-tuned 5k steps on noisy demos, 10 actions per call | 200 demos from 3 takes | 32% (50 episodes) |
-| SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call | 200 demos from 3 takes | 46% (48% on a first 50); not yet reproduced, see below |
+| SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call | 200 demos from 3 takes | 46% (48% on a first 50) |
+| same, retrained from scratch to check it | 200 demos from 3 takes | 52% (50 episodes) |
 | ACT, 30k steps, 5 actions per call | 400 demos from 3 takes | 34% |
 | **ACT, same, with the human's pauses removed from the takes** | 400 demos from 3 takes | **64%** |
 | SmolVLA, same recipe, 5k steps | 400 demos from 3 takes | 0% |
 | SmolVLA, same recipe, 5k / 10k steps | 400 demos, pauses removed | 0% / 1% |
 | Reference: ACT on demos from a scripted grasp (true mug pose), same multiplier and recipe, 5 actions per call | 400 scripted demos | 92% |
 
-**SmolVLA did not hold up.** On the 400-demo sets it scores 0-1%: it reaches the mug, presses on it and twists
-the wrist. Re-evaluating the 46% checkpoint on 10 episodes gave 2/10. The training configs differ only in the
-dataset, so the 46% may be a lucky run; a retrain on the same 200 demos is running to check. Another applicant hit
-the same failure and traced it to the human wrist turning more than LIBERO's demos do (`docs/others.md`); a
-still-wrist variant is running too.
+**SmolVLA works on one demo set and not on the next.** On the first 200-demo set it reaches 46%, and a retrain
+from scratch gives 52%. On the later 400-demo sets (sampled around the mean of LIBERO's start states instead of
+around one start state) it scores 0-1%, including after 10k steps: it reaches the mug, presses on it and twists
+the wrist. ACT trains fine on those same sets (34% and 64%). The cause is not found. Another applicant hit the same
+failure and traced it to the human wrist turning more than in LIBERO's demos (`docs/others.md`); a still-wrist
+variant is running.
 
 **Caveats.** Checkpoints and the number of actions per policy call were chosen on the same 50 start states the
 table reports, so the best rows are slightly optimistic. "Pauses make the policy stall" is my reading of the
