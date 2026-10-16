@@ -80,3 +80,9 @@ Question: is the ~36% ceiling of ACT the learner or the human-derived data? Same
 Clean v3 yields are higher than the noisy v3 runs (97/87% vs 88/66%): the noise itself caused failed rollouts.
 The learner can reach 92% on this task with this amount of data, so the gap is in the demos.
 Modal still refuses new calls (workspace spend limit), so all of this runs on the laptop.
+
+### Spike: retimed human tracks (rule written before running)
+The phone tracks are still 43-65% of the time (oracle 20%); take04 goes 275 -> 149 steps without its pauses.
+Same multiplier and ACT recipe as act_mean_30k, sources retimed with `tools/retime.py` (2 mm path step, 12-frame
+dwell after grip changes). Rule: if ACT success (100 episodes, 5 actions per call) beats act_mean_30k by 10+
+points, retiming becomes part of the pipeline; within 10 points, it is reported as no effect.

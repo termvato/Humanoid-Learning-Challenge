@@ -42,6 +42,22 @@ def centred_place_shift(
     return np.r_[place_xy - (eef[r, :2] + held), 0.0]
 
 
+def retime(eef: np.ndarray, grip: np.ndarray, min_step: float = 0.002, dwell: int = 12) -> np.ndarray:
+    """Indices of a source track with the human's pauses removed: a frame is kept once the hand has moved
+    min_step (m) along its path since the last kept frame. The first and last frames and the `dwell` frames after
+    each gripper change are always kept, so the gripper still has time to close or open."""
+    keep = np.zeros(len(eef), bool)
+    keep[[0, -1]] = True
+    for c in np.flatnonzero(np.diff(np.sign(grip))) + 1:
+        keep[c : c + dwell] = True
+    out, last = [], eef[0]
+    for i in range(len(eef)):
+        if keep[i] or np.linalg.norm(eef[i] - last) >= min_step:
+            out.append(i)
+            last = eef[i]
+    return np.array(out)
+
+
 def quat2axisangle(q: np.ndarray) -> np.ndarray:
     """xyzw -> axis-angle, as LeRobot's LIBERO processor does (angle in [0, pi])."""
     q = q * (1 if q[3] >= 0 else -1)

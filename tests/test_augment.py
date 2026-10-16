@@ -1,6 +1,6 @@
 import numpy as np
 
-from handsim.augment import centred_place_shift, shift_profile, warp
+from handsim.augment import centred_place_shift, retime, shift_profile, warp
 from handsim.sim import GRIP_CLOSE, GRIP_OPEN
 
 
@@ -21,3 +21,15 @@ def test_centred_place_shift_puts_held_object_on_target():
     target = np.array([0.25, 0.05])
     s = centred_place_shift(eef, grip, pick, target)
     assert np.allclose(eef[7, :2] + s[:2] + [0.04, 0.0], target) and s[2] == 0
+
+
+def test_retime_drops_pauses_keeps_grip_dwell():
+    eef = np.zeros((40, 3))
+    eef[10:20, 0] = np.linspace(0.01, 0.1, 10)  # move, then a long pause from 20 on
+    eef[20:, 0] = 0.1
+    grip = np.full(40, GRIP_OPEN)
+    grip[30:] = GRIP_CLOSE
+    idx = retime(eef, grip, min_step=0.002, dwell=5)
+    assert list(idx[:2]) == [0, 10]  # the pause before the move is gone
+    assert set(range(10, 20)) <= set(idx) and set(range(30, 35)) <= set(idx) and 25 not in idx
+    assert idx[-1] == 39
