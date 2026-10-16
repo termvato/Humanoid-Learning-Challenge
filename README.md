@@ -17,9 +17,9 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 |---|---|---|
 | Open-loop replay of each phone take (own layout) | 5 takes | 3/5 takes |
 | Demo multiplier yield (replay at new object positions, kept only if the sim says success) | 3 takes | 60% of rollouts |
-| SmolVLA `lerobot/smolvla_libero`, zero-shot (no own data) | none | TBD |
+| SmolVLA `lerobot/smolvla_libero`, zero-shot (no own data) | none | 2% |
 | ACT, 30k steps | 200 demos from 3 takes | **20%** |
-| ACT, 30k steps, noisy demos (DART) | 200 demos from 3 takes | TBD |
+| ACT, 30k steps, noisy demos (DART) | 200 demos from 3 takes | 16% |
 | SmolVLA fine-tuned from `smolvla_libero`, 20k steps | 200 demos from 3 takes | TBD |
 
 ![ACT training curve](docs/media/act_training_curve.png)
@@ -64,6 +64,7 @@ iPhone (Stray Scanner: RGB 1920x1440 @ 60 fps, LiDAR depth, ARKit poses)
   off-centre set-downs missed the sim plate (yield 40% -> 60%).
 - **DART noise.** Clean replays never show recovering from an error, and ACT's failures were missed grasps it
   could not recover from. The noisy variant perturbs executed actions and records the clean corrective action.
+  It did not help ACT here (16% vs 20%, inside the noise).
 - **Two policy families.** ACT (small, trains on the laptop in about an hour) and SmolVLA (a 450M VLA, fine-tuned
   from the LIBERO checkpoint on a Modal L4) on the same data.
 
