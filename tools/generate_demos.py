@@ -20,12 +20,13 @@ INIT_MEAN = {"mug": (np.array([-0.100, -0.153]), np.array([0.149, 0.000]))}
 CHUNK = 8  # rollouts per task; each task gets a fresh process (env.close() leaks ~1.5 GB)
 
 
-def sample(rng, pick0, place0, radius: float, min_gap: float = 0.16):
-    while True:
+def sample(rng, pick0, place0, radius: float, min_gap: float = 0.16, tries: int = 1000):
+    for _ in range(tries):
         a = pick0 + rng.uniform(-radius, radius, 2)
         b = place0 + rng.uniform(-radius, radius, 2)
         if np.linalg.norm(a - b) > min_gap:
             return a, b
+    raise ValueError(f"no layout with objects {min_gap} m apart within radius {radius}")
 
 
 def worker(args) -> list:

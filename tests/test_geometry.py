@@ -108,3 +108,13 @@ def test_grasp_anchor_avoids_arc():
     shift = grasp_anchor(tip, centre, 0.04, 0.08, no_grasp_arc=(75, 135))
     a = np.degrees(np.arctan2(*(tip + shift)[1::-1]))
     assert abs(a - 75) < 1e-6 and np.isclose(np.linalg.norm((tip + shift)[:2]), 0.04)
+
+
+def test_grip_closed_ignores_tracks_without_a_pinch():
+    from handsim.geometry import grip_closed
+
+    rng = np.random.default_rng(0)
+    flat = 0.05 + rng.normal(0, 0.001, 200)  # tracking noise only
+    assert not grip_closed(flat)[0].any()
+    pinch = np.r_[np.full(50, 0.06), np.full(50, 0.01), np.full(50, 0.06)]
+    assert grip_closed(pinch)[0][50:100].all()

@@ -33,3 +33,7 @@ def test_retime_drops_pauses_keeps_grip_dwell():
     assert list(idx[:2]) == [0, 10]  # the pause before the move is gone
     assert set(range(10, 20)) <= set(idx) and set(range(30, 35)) <= set(idx) and 25 not in idx
     assert idx[-1] == 39
+
+
+def test_centred_place_shift_without_grasp_is_zero():
+    assert np.allclose(centred_place_shift(np.zeros((5, 3)), np.full(5, GRIP_OPEN), np.zeros(2), np.ones(2)), 0)

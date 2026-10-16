@@ -4,6 +4,10 @@ I recorded myself moving a white jug onto a plate with an iPhone (LiDAR depth pl
 that recording into robot demonstrations for LIBERO task `libero_90 #72` ("put the white mug on the plate"),
 multiplies them in simulation, and trains policies (ACT and the SmolVLA VLA) on nothing but that data.
 
+**Headline:** ACT trained only on demos from three phone takes puts the mug on the plate in 64% of LIBERO's
+standard episodes. The same recipe on scripted demos reaches 92%, so the remaining gap is in the human-derived
+trajectories; removing my pauses from the takes was the largest single gain (34% to 64%).
+
 ![phone vs sim](docs/media/take04_phone_vs_sim.gif)
 
 *Left: my hand, recorded in a hotel room. Right: the Panda replaying the retargeted motion. LIBERO's own success check fires.*
@@ -23,10 +27,22 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | same ACT checkpoint, temporal ensembling (1 action per call) | 200 demos from 3 takes | 36% |
 | ACT, 30k steps, noisy demos (DART), 20 / 5 actions per call | 200 demos from 3 takes | 16% / 14% |
 | SmolVLA fine-tuned 5k steps on noisy demos, 10 actions per call | 200 demos from 3 takes | 32% (50 episodes) |
-| **SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call** | 200 demos from 3 takes | **46%** (48% on a first 50) |
+| SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call | 200 demos from 3 takes | 46% (48% on a first 50); not yet reproduced, see below |
 | ACT, 30k steps, 5 actions per call | 400 demos from 3 takes | 34% |
 | **ACT, same, with the human's pauses removed from the takes** | 400 demos from 3 takes | **64%** |
+| SmolVLA, same recipe, 5k steps | 400 demos from 3 takes | 0% |
+| SmolVLA, same recipe, 5k / 10k steps | 400 demos, pauses removed | 0% / 1% |
 | Reference: ACT on demos from a scripted grasp (true mug pose), same multiplier and recipe, 5 actions per call | 400 scripted demos | 92% |
+
+**SmolVLA did not hold up.** On the 400-demo sets it scores 0-1%: it reaches the mug, presses on it and twists
+the wrist. Re-evaluating the 46% checkpoint on 10 episodes gave 2/10. The training configs differ only in the
+dataset, so the 46% may be a lucky run; a retrain on the same 200 demos is running to check. Another applicant hit
+the same failure and traced it to the human wrist turning more than LIBERO's demos do (`docs/others.md`); a
+still-wrist variant is running too.
+
+**Caveats.** Checkpoints and the number of actions per policy call were chosen on the same 50 start states the
+table reports, so the best rows are slightly optimistic. "Pauses make the policy stall" is my reading of the
+failure videos, not a measured cause: retiming also made episodes shorter.
 
 The scripted reference shows the ACT recipe can solve this task with this much data, so the gap is in the
 human-derived trajectories. The biggest single fix was removing the pauses: my hand is still 43-65% of the time in
@@ -91,6 +107,9 @@ iPhone (Stray Scanner: RGB 1920x1440 @ 60 fps, LiDAR depth, ARKit poses)
   height bands and a circle fit to the visible arc.
 - **ACT plateaus around 15-20%** on clean demos: 14% at 20k, 20% at 30k, 16% at 40k steps (100 episodes each).
   Failures are mostly grasps that miss the rim, drift, or knock the mug over.
+- **Wrist smoothing lags.** Position is smoothed with a zero-lag Savitzky-Golay filter but rotation with a
+  one-sided moving average, so the wrist trails the hand by about 0.2 s. Found in review after the runs; left
+  as is so the code matches the results. It may add to the wrist turning above.
 - **Engineering:** 24 parallel sim workers ran the laptop out of RAM and GPU memory (8 workers now), and
   `modal run --detach` jobs were cancelled when the laptop lost its connection (jobs are now spawned on a
   deployed app).

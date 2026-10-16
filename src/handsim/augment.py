@@ -37,6 +37,8 @@ def centred_place_shift(
     assumed rigid in the gripper from the grasp (first closed step) to the release (last closed step); pick_xy is
     its centre at the grasp, in the same frame as eef. Returns a 3-vector (z = 0)."""
     closed = np.flatnonzero(grip == GRIP_CLOSE)
+    if len(closed) == 0:  # never grasped: nothing to centre
+        return np.zeros(3)
     g, r = closed[0], closed[-1]
     held = pick_xy - eef[g, :2]  # object centre relative to the gripper
     return np.r_[place_xy - (eef[r, :2] + held), 0.0]

@@ -146,10 +146,13 @@ def smooth_track(pos: np.ndarray, rot: np.ndarray, width: np.ndarray, fps: float
     return pos, out, width
 
 
-def grip_closed(width: np.ndarray) -> tuple[np.ndarray, float]:
-    """Closed where the pinch distance is below the midpoint of its 10th and 90th percentiles (with hysteresis)."""
+def grip_closed(width: np.ndarray, min_range: float = 0.01) -> tuple[np.ndarray, float]:
+    """Closed where the pinch distance is below the midpoint of its 10th and 90th percentiles (with hysteresis).
+    A track whose pinch distance varies less than min_range (m) has no real pinch: all open."""
     lo, hi = np.percentile(width, [10, 90])
     thr = (lo + hi) / 2
+    if hi - lo < min_range:
+        return np.zeros(len(width), bool), float(thr)
     band = 0.15 * (hi - lo)
     closed = np.zeros(len(width), bool)
     state = width[0] < thr
