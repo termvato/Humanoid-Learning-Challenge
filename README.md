@@ -42,6 +42,7 @@ iPhone (Stray Scanner: RGB 1920x1440 @ 60 fps, LiDAR depth, ARKit poses)
   -> tools/extract_hand.py WiLoR hand keypoints per frame, placed in 3D with the phone intrinsics + LiDAR depth
   -> tools/replay.py       thumb/index pinch -> Panda gripper pose and open/close; real -> sim transform;
                            grasp anchor; open-loop replay in LIBERO (OSC_POSE, 20 Hz)
+  -> tools/retime.py       drop the frames where my hand is still (keeps the gripper dwell)
   -> tools/generate_demos.py  MimicGen-style: move mug and plate, warp the path with them, keep sim successes
                               -> LeRobotDataset (same format as the public LIBERO datasets)
   -> lerobot-train (ACT locally; ACT and SmolVLA on Modal, infra/modal_train.py)
@@ -105,8 +106,9 @@ uv venv .venv && uv pip install --python .venv/bin/python "lerobot[libero,smolvl
 .venv-hand/bin/python tools/extract_hand.py data/raw/take04 outputs/take04
 MUJOCO_GL=egl .venv/bin/python tools/replay.py data/raw/take04 outputs/take04 --task mug
 
-# 2. demos from the takes that replay successfully
-MUJOCO_GL=egl .venv/bin/python tools/generate_demos.py outputs/take0{2,3,4}/traj_sim.npz \
+# 2. remove pauses, then demos from the takes that replay successfully
+for t in 2 3 4; do .venv/bin/python tools/retime.py outputs/take0$t/traj_sim.npz outputs/take0$t/traj_sim_retimed.npz; done
+MUJOCO_GL=egl .venv/bin/python tools/generate_demos.py outputs/take0{2,3,4}/traj_sim_retimed.npz \
     --n 400 --radius 0.035 --around init_mean --out data/demos/real3
 
 # 3. train and evaluate
