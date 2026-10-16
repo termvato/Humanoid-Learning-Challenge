@@ -89,3 +89,10 @@ dwell after grip changes). Rule: if ACT success (100 episodes, 5 actions per cal
 points, retiming becomes part of the pipeline; within 10 points, it is reported as no effect.
 
 Result: 64% vs 34% (100 episodes each). PASS (+30 points): retiming is part of the pipeline (D5).
+
+### SmolVLA 20k round on the 400-demo sets (Modal, 2026-10-16)
+- 5k checkpoints: normal demos 0%, retimed demos 0% (100 episodes each). The earlier 5k run on the 200-demo set
+  scored 46%, and re-evaluating it today gives 2/10, so the eval is not broken. Configs differ only in the dataset;
+  weights have no NaNs and moved from the base as much as the working run.
+- Behaviour: reaches the mug, presses on it, then the wrist slowly twists and tilts; the mug is never lifted.
+- 5k steps at batch 16 is 1.2 epochs of the 400-demo sets vs 2.1 of the 200-demo set. 10k/15k/20k pending.
