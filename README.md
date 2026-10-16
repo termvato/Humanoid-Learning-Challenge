@@ -23,7 +23,7 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | same ACT checkpoint, temporal ensembling (1 action per call) | 200 demos from 3 takes | 36% |
 | ACT, 30k steps, noisy demos (DART), 20 / 5 actions per call | 200 demos from 3 takes | 16% / 14% |
 | SmolVLA fine-tuned 5k steps on noisy demos, 10 actions per call | 200 demos from 3 takes | 32% (50 episodes) |
-| **SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call** | 200 demos from 3 takes | **48%** (50 episodes) |
+| **SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call** | 200 demos from 3 takes | **46%** (48% on a first 50) |
 
 ![ACT training curve](docs/media/act_training_curve.png)
 
