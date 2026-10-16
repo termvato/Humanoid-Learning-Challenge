@@ -24,10 +24,13 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | ACT, 30k steps, noisy demos (DART), 20 / 5 actions per call | 200 demos from 3 takes | 16% / 14% |
 | SmolVLA fine-tuned 5k steps on noisy demos, 10 actions per call | 200 demos from 3 takes | 32% (50 episodes) |
 | **SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call** | 200 demos from 3 takes | **46%** (48% on a first 50) |
+| ACT, 30k steps, 5 actions per call | 400 demos from 3 takes | 34% |
+| **ACT, same, with the human's pauses removed from the takes** | 400 demos from 3 takes | **64%** |
 | Reference: ACT on demos from a scripted grasp (true mug pose), same multiplier and recipe, 5 actions per call | 400 scripted demos | 92% |
 
-The scripted reference shows the ACT recipe can solve this task with this much data: the gap to 36% is in the
-human-derived trajectories, not the learner.
+The scripted reference shows the ACT recipe can solve this task with this much data, so the gap is in the
+human-derived trajectories. The biggest single fix was removing the pauses: my hand is still 43-65% of the time in
+the takes (scripted: 20%), and a policy trained on that learns to stall. Retiming took ACT from 34% to 64%.
 
 ![ACT training curve](docs/media/act_training_curve.png)
 

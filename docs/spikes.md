@@ -74,7 +74,8 @@ Question: is the ~36% ceiling of ACT the learner or the human-derived data? Same
 | source | multiplier yield | ACT success |
 |---|---|---|
 | scripted oracle rim pinch | 97% (400 demos) | **92%** |
-| 3 phone takes | 87% (400 demos) | training (act_mean_30k) |
+| 3 phone takes | 87% (400 demos) | 34% |
+| 3 phone takes, pauses removed (`tools/retime.py`) | 88% (400 demos) | **64%** |
 | 3 phone takes, older 200-demo set (r04) | 60% | 36% |
 
 Clean v3 yields are higher than the noisy v3 runs (97/87% vs 88/66%): the noise itself caused failed rollouts.
@@ -86,3 +87,5 @@ The phone tracks are still 43-65% of the time (oracle 20%); take04 goes 275 -> 1
 Same multiplier and ACT recipe as act_mean_30k, sources retimed with `tools/retime.py` (2 mm path step, 12-frame
 dwell after grip changes). Rule: if ACT success (100 episodes, 5 actions per call) beats act_mean_30k by 10+
 points, retiming becomes part of the pipeline; within 10 points, it is reported as no effect.
+
+Result: 64% vs 34% (100 episodes each). PASS (+30 points): retiming is part of the pipeline (D5).

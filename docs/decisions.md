@@ -20,3 +20,8 @@
   shifts the release so the held mug's centre lands on the plate centre.
 - Why: the real plate is 23 cm, the sim plate 13.8 cm; off-centre human set-downs miss the sim plate. Yield at the
   default layout went from ~40% to 58% (24 rollouts).
+
+## D5. Remove the human's pauses from source tracks before multiplying (2026-10-16)
+- `tools/retime.py` keeps a frame only after 2 mm of hand motion, plus 12 frames after each gripper change.
+- Why: the phone tracks were still 43-65% of the time. ACT on the same 400-demo recipe went from 34% to 64%
+  with pauses removed (spike rule: +10 points). Doubling the demos (200 -> 400) without retiming did not help (36% -> 34%).
