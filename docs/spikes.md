@@ -65,3 +65,18 @@ All on libero_90 #72 stored init states, 100 episodes unless noted (95% CI about
   committed survived (SmolVLA 5k x2, ACT v3 10k).
 - DART noise hurts both learners: ACT (5 actions/call) 36% clean vs 14% noisy; SmolVLA 5k (10 actions/call,
   50 episodes) 48% clean vs 32% noisy. ACT temporal ensembling 36%, same as 5 actions/call.
+
+## 2026-10-16 morning: oracle vs human source, same recipe
+
+Question: is the ~36% ceiling of ACT the learner or the human-derived data? Same multiplier (around the init mean,
++-3.5 cm, clean), same ACT recipe (chunk 50, batch 32, 30k steps), eval 5 actions per call, 100 episodes.
+
+| source | multiplier yield | ACT success |
+|---|---|---|
+| scripted oracle rim pinch | 97% (400 demos) | **92%** |
+| 3 phone takes | 87% (400 demos) | training (act_mean_30k) |
+| 3 phone takes, older 200-demo set (r04) | 60% | 36% |
+
+Clean v3 yields are higher than the noisy v3 runs (97/87% vs 88/66%): the noise itself caused failed rollouts.
+The learner can reach 92% on this task with this amount of data, so the gap is in the demos.
+Modal still refuses new calls (workspace spend limit), so all of this runs on the laptop.
