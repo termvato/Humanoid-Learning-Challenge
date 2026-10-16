@@ -47,3 +47,19 @@ LIBERO default layout; release centred on the plate). ACT, chunk 50, 20 actions 
 
 Failures (10k videos): grasps that miss the rim, arm drifting off the mug, mug knocked over, plate flipped once.
 Next: DART-style action noise in the demos (noise 0.2: yield unchanged, 24/39).
+
+## Night of 2026-10-15: baselines, noise, chunk length, Modal
+
+All on libero_90 #72 stored init states, 100 episodes unless noted (95% CI about +-8 points at 20%).
+
+- Zero-shot `lerobot/smolvla_libero` (LIBERO-trained VLA, no own data): 2%.
+- ACT on clean demos (200, 3 takes): 14% at 20k, 20% at 30k, 16% at 40k steps. Plateau.
+- ACT on DART-noise demos (noise 0.2): 8% at 20k, 16% at 30k. Noise did not help.
+- **Action chunk length at eval** (same clean 30k checkpoint, no retraining): 20 actions per call 20%,
+  10 actions 32%, 5 actions 36%. The policy needs to re-plan; 1 s blind is too long for the grasp.
+- LIBERO init states: mug and plate each span ~4.7 cm, mug yaw fixed at -90 deg. Mean positions are
+  2.6 cm from init state 0, so v3 demos sample +-3.5 cm around the mean (yield 66%, 400 demos).
+- Oracle source (scripted rim pinch, true mug pose) through the same multiplier: yield 88% (vs 66% phone).
+- Modal: `modal run --detach` jobs were cancelled when the laptop lost its connection; spawned calls on a
+  deployed app survive. Then the workspace spend limit stopped all jobs mid-run; only checkpoints already
+  committed survived (SmolVLA 5k x2, ACT v3 10k).
