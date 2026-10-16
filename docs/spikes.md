@@ -147,3 +147,10 @@ Same checkpoint, 100 episodes: 5 actions per call 64%, 10 actions 36%, temporal 
 8%. On the earlier 200-demo ACT the same settings gave 36% / 32% / 36%. The retimed policy depends strongly on
 re-planning every 5 steps; since 5 was chosen on the test states, 64% is the best of three settings. Seed repeats
 running.
+
+### SmolVLA diagnostics (5k steps, 10 actions per call)
+- Retrain on the first 200-demo set (real3_r04): 52% (50 episodes). The 46% reproduces.
+- Scripted demos, same 400-demo generation settings (oracle_mean_400): 84% (50 episodes).
+So the later generation settings do not break SmolVLA; the 400-demo sets from the takes do (0-1%). Remaining
+differences between the working and failing human sets: sampled around one start state vs the mean of all,
+200 vs 400 demos. Still-wrist run pending.

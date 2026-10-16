@@ -34,11 +34,13 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | SmolVLA, same recipe, 5k steps | 400 demos from 3 takes | 0% |
 | SmolVLA, same recipe, 5k / 10k steps | 400 demos, pauses removed | 0% / 1% |
 | Reference: ACT on demos from a scripted grasp (true mug pose), same multiplier and recipe, 5 actions per call | 400 scripted demos | 92% |
+| Reference: SmolVLA, same recipe as the 46% row | 400 scripted demos | 84% (50 episodes) |
 
 **SmolVLA works on one demo set and not on the next.** On the first 200-demo set it reaches 46%, and a retrain
 from scratch gives 52%. On the later 400-demo sets (sampled around the mean of LIBERO's start states instead of
 around one start state) it scores 0-1%, including after 10k steps: it reaches the mug, presses on it and twists
-the wrist. ACT trains fine on those same sets (34% and 64%). The cause is not found. Another applicant hit the same
+the wrist. ACT trains fine on those same sets (34% and 64%), and SmolVLA reaches 84% on scripted demos made with the same
+settings, so the problem is specific to SmolVLA on the 400 demos from my takes. The cause is not found. Another applicant hit the same
 failure and traced it to the human wrist turning more than in LIBERO's demos (`docs/others.md`); a still-wrist
 variant is running.
 
