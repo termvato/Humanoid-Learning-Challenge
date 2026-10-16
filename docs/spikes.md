@@ -141,3 +141,9 @@ vs 0.415 for copying the last frame. Imagined endings "on plate": own actions 68
 classifier gives real final frames 68%), gripper never closing 0% (PASS, was 47%), gripper opening halfway
 through the carry 28% (PASS; no training episode does this). Adding failure data taught it that the mug moves only
 while held, including for a release it never saw.
+
+### Actions per call on the retimed ACT (64% at 5)
+Same checkpoint, 100 episodes: 5 actions per call 64%, 10 actions 36%, temporal ensembling (1 action, coeff 0.01)
+8%. On the earlier 200-demo ACT the same settings gave 36% / 32% / 36%. The retimed policy depends strongly on
+re-planning every 5 steps; since 5 was chosen on the test states, 64% is the best of three settings. Seed repeats
+running.
