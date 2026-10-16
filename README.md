@@ -4,11 +4,12 @@ I recorded myself moving a white jug onto a plate with an iPhone (LiDAR depth pl
 that recording into robot demonstrations for LIBERO task `libero_90 #72` ("put the white mug on the plate"),
 multiplies them in simulation, and trains policies (ACT and the SmolVLA VLA) on nothing but that data.
 
-**Headline:** ACT trained only on demos from three phone takes puts the mug on the plate in 64% of LIBERO's
-standard episodes (5 actions per call). The same recipe on scripted demos reaches 92%, so the remaining gap is in
-the human-derived trajectories; removing my pauses from the takes was the largest single gain (34% to 64%). A world
-model trained on the same demos predicts the robot's cameras 2 s ahead and, once given no-grasp episodes, imagines
-that the mug moves only while held, including for a release it never saw.
+**Headline:** policies trained only on demos from three phone takes put the mug on the plate in LIBERO's standard
+episodes: SmolVLA 46% (52% on a retrain), ACT 41% averaged over three training seeds (64%, 36%, 24%). The same
+recipes on scripted demos reach 84% and 92%, so the remaining gap is in the human-derived trajectories, and the
+seed spread shows how unstable ACT is on this data. A world model trained on the same demos predicts the robot's
+cameras 2 s ahead and, once given no-grasp episodes, imagines that the mug moves only while held, including for a
+release it never saw.
 
 ![phone vs sim](docs/media/take04_phone_vs_sim.gif)
 
@@ -32,30 +33,37 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | SmolVLA fine-tuned from `smolvla_libero`, 5k steps, 10 actions per call | 200 demos from 3 takes | 46% (48% on a first 50) |
 | same, retrained from scratch to check it | 200 demos from 3 takes | 52% (50 episodes) |
 | ACT, 30k steps, 5 actions per call | 400 demos from 3 takes | 34% |
-| **ACT, same, with my pauses removed from the takes** | 400 demos from 3 takes | **64%** |
+| **ACT, same, with my pauses removed from the takes, 3 training seeds** | 400 demos from 3 takes | **64% / 36% / 24% (mean 41%)** |
+| ACT, pauses removed, wrist held at the grasp orientation | 400 demos from 3 takes | 40% |
+| ACT, pauses removed, gripper opens 2 cm above the set-down point, 10k steps | 400 demos from 3 takes | 44% |
 | SmolVLA, same recipe, 5k steps | 400 demos from 3 takes | 0% |
 | SmolVLA, same recipe, 5k / 10k steps | 400 demos, pauses removed | 0% / 1% |
+| SmolVLA, same recipe, 10k steps | 400 demos, pauses removed, wrist held still | 0% (50 episodes) |
 | Reference: ACT on demos from a scripted grasp (true mug pose), same multiplier and recipe, 5 actions per call | 400 scripted demos | 92% |
 | Reference: SmolVLA, same recipe as the 46% row | 400 scripted demos | 84% (50 episodes) |
 
 **SmolVLA works on one demo set and not on the next.** On the first 200-demo set it reaches 46%, and a retrain
 from scratch gives 52%. On the later 400-demo sets (sampled around the mean of LIBERO's start states instead of
 around one start state) it scores 0-1%, including after 10k steps: it reaches the mug, presses on it and twists
-the wrist. ACT trains fine on those same sets (34% and 64%), and SmolVLA reaches 84% on scripted demos made with the same
-settings, so the problem is specific to SmolVLA on the 400 demos from my takes. The cause is not found. Another applicant hit the same
+the wrist. ACT trains on those same sets (34-41%), and SmolVLA reaches 84% on scripted demos made with the same
+settings, so the problem is specific to SmolVLA on the 400 demos from my takes. Another applicant hit the same
 failure and traced it to the human wrist turning more than in LIBERO's demos
-([andrealo20/phone-to-panda](https://github.com/andrealo20/phone-to-panda)). Not finished
-before the deadline: a still-wrist variant (`tools/retime.py --hold-wrist`), a release-early variant (the 64% ACT's
-failures hover over the plate without letting go; `--release-early`) and two more seeds of the 64% ACT.
+([andrealo20/phone-to-panda](https://github.com/andrealo20/phone-to-panda)); holding the wrist still did not fix
+it here (0%). The cause is not found.
 
 **Caveats.** Checkpoints and the number of actions per policy call were chosen on the same 50 start states the
-table reports, so the best rows are slightly optimistic. The 64% ACT is sensitive to this choice: the same
-checkpoint gives 36% at 10 actions per call and 8% with temporal ensembling. "Pauses make the policy stall" is my reading of the
+table reports, so the best rows are optimistic. Training seeds matter more than any data change I tried: the
+pauses-removed recipe gives 64%, 36% and 24% with three seeds, and the 64% checkpoint drops to 36% at 10 actions per
+call and 8% with temporal ensembling. The as-recorded (34%), still-wrist (40%) and release-early (44%) rows are
+single seeds, so their differences from the 41% mean are within that noise. "Pauses make the policy stall" is my reading of the
 failure videos, not a measured cause: retiming also made episodes shorter.
 
 The scripted reference shows the ACT recipe can solve this task with this much data, so the gap is in the
-human-derived trajectories. The biggest single fix was removing the pauses: my hand is still 43-65% of the time in
-the takes (scripted: 20%), which I read as teaching the policy to stall. Retiming took ACT from 34% to 64%.
+human-derived trajectories. My hand is still 43-65% of the time in the takes (scripted: 20%), so I removed the
+pauses; the first seed went from 34% to 64%, but across three seeds the mean is 41%, so the gain is uncertain.
+The 64% policy's failures carry the mug over the plate and hover without letting go: my hand presses the mug onto
+the plate before opening, while the scripted demos open just above it. Opening 2 cm higher (`--release-early`)
+gave 44% at 10k steps.
 
 ![ACT training curve](docs/media/act_training_curve.png)
 

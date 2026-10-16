@@ -154,3 +154,11 @@ running.
 So the later generation settings do not break SmolVLA; the 400-demo sets from the takes do (0-1%). Remaining
 differences between the working and failing human sets: sampled around one start state vs the mean of all,
 200 vs 400 demos. Still-wrist run pending.
+
+
+### Results of the last runs (2026-10-16, evening)
+- Seeds of the retimed ACT (100 episodes, 5 actions per call): 64% / 36% / 24%, mean 41%. The retime spike's
+  PASS rested on one seed; with three it does not hold.
+- Still wrist: ACT 40% (no effect, within seed noise); SmolVLA 10k 0% (50 episodes): the wrist is not the cause of
+  the SmolVLA failure on the 400-demo sets.
+- Release early: ACT 44% at 10k steps (no effect yet by the +10 rule against the 41% mean); 30k pending.

@@ -28,3 +28,6 @@
 - Why: my hand was still 43-65% of the time in the takes. ACT on the same 400-demo recipe went from 34% to 64%
   with pauses removed (spike rule: +10 points). Doubling the demos (200 -> 400) without retiming did not help
   (36% -> 34%).
+- Update (2026-10-16, evening): two more training seeds of the retimed recipe gave 36% and 24% (mean of three 41%),
+  so the 34% -> 64% gain is mostly seed luck. Retiming stays in the pipeline (it does not hurt, and episodes are
+  shorter), but it is not a proven improvement.
