@@ -118,3 +118,7 @@ Result wm1 (15k steps, H100, 24 min; 1200 episodes, 60 held out):
   plate" and look the same. Rerun of the classifier only, those frames left out (wm1_cls2), reported separately.
 - Videos: imagined rollouts with the demo's actions follow the real ones; with the gripper never closing the
   image smears where the carry should be (never seen in training).
+Result wm1_cls2 (same world model, classifier retrained with the 20 pre-release steps left out): judge calls 68%
+of real final frames "on plate" (was 52%); imagined own actions 70%, gripper never closing 47%. Rule 2 still FAIL:
+the gap between grasping and not grasping is small. The world model predicts motion well (rule 1) but does not
+reliably imagine that an ungrasped mug stays behind; it has never seen an open gripper during a carry.
