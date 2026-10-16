@@ -43,7 +43,8 @@ failure and traced it to the human wrist turning more than in LIBERO's demos (`d
 variant is running.
 
 **Caveats.** Checkpoints and the number of actions per policy call were chosen on the same 50 start states the
-table reports, so the best rows are slightly optimistic. "Pauses make the policy stall" is my reading of the
+table reports, so the best rows are slightly optimistic. The 64% ACT is sensitive to this choice: the same
+checkpoint gives 36% at 10 actions per call and 8% with temporal ensembling. "Pauses make the policy stall" is my reading of the
 failure videos, not a measured cause: retiming also made episodes shorter.
 
 The scripted reference shows the ACT recipe can solve this task with this much data, so the gap is in the
