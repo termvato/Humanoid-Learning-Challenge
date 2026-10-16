@@ -136,3 +136,8 @@ only after pressing the mug onto the plate (eef z 0.531 at release, 3 cm descent
 opens after lifting again) while scripted demos open right after a fast descent and drop the mug ~2 cm (z 0.586).
 Variant: retimed takes with the gripper opening 2 cm above the set-down point (`tools/retime.py --release-early`),
 400 demos, same ACT recipe on Modal, 100 episodes at 5 actions per call. Rule: a fix if it beats 64% by 10+ points.
+Result wm2 (wm1 recipe + 300 no-grasp episodes; 1500 episodes, 60 held-out demos): latent error 1 s ahead 0.034
+vs 0.415 for copying the last frame. Imagined endings "on plate": own actions 68% (rule 70%+: FAIL by 2 points; the
+classifier gives real final frames 68%), gripper never closing 0% (PASS, was 47%), gripper opening halfway
+through the carry 28% (PASS; no training episode does this). Adding failure data taught it that the mug moves only
+while held, including for a release it never saw.

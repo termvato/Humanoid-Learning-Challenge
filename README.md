@@ -55,24 +55,28 @@ the takes (scripted: 20%), and a policy trained on that learns to stall. Retimin
 A learned simulator trained on the same demos (`infra/modal_world.py`). Given the robot's two camera images and its
 next 4 actions, it predicts the images 0.2 s later; feeding its own predictions back imagines a whole episode.
 Frames are compressed with the frozen Stable Diffusion VAE (128 px, 4x16x16 latent per camera) and a small
-FiLM-conditioned conv net predicts the change, trained unrolled on its own predictions (15k steps, one H100, 24
-min; 1200 episodes from the phone-derived and scripted demo sets, 1 in 20 held out).
+FiLM-conditioned conv net predicts the change, trained unrolled on its own predictions (15k steps, one H100, about
+25 min). A classifier trained on real frames judges whether an imagined episode ends with the mug on the plate.
 
 ![world model rollout](docs/media/world_model_rollout.gif)
 
-*Held-out episode. Top: real. Middle: imagined from the first frame with the demo's actions. Bottom: the same
-actions with the gripper never closing.*
+*Held-out episode, wm2. Rows: real; imagined with the demo's actions; same actions with the gripper never
+closing; same actions with the gripper opening halfway through the carry.*
 
-| Test (rule written before running) | Result | |
+| Test (rules written before running) | wm1: demos only | wm2: + 300 no-grasp episodes |
 |---|---|---|
-| Latent error 1 s ahead, vs copying the last frame | 0.032 vs 0.410 (2 s: 0.038 vs 0.489) | pass |
-| Imagined own actions end with the mug on the plate (70%+) | 70% (the classifier says 68% for real final frames) | pass |
-| Same actions, gripper never closing, end on the plate (30% or less) | 47% | fail |
+| Latent error 1 s ahead vs copying the last frame | 0.032 vs 0.410 (pass) | 0.034 vs 0.415 (pass) |
+| Own actions end on the plate (70%+) | 70% (pass) | 68% (fail by 2 points) |
+| Gripper never closing ends on the plate (30% or less) | 47% (fail) | **0%** (pass) |
+| Gripper opening mid-carry ends on the plate (30% or less); in no training episode | not tested | **28%** (pass) |
+| For reference: real final frames judged "on plate" | 68% | 68% |
 
-It predicts motion well, but does not reliably imagine that an ungrasped mug stays behind: an open gripper during
-a carry never appears in its training data, and that imagination smears. The "on plate" classifier was fixed after
-the first result (it had labelled the last held frames, mug already on the plate, as "not on plate"); the first
-run gave 48% / 18% with 52% for real frames. Not used to control the robot.
+wm1 predicted motion well but imagined the mug following the arm even when it was never grasped: it had never seen
+an open gripper during a carry. Adding 300 sim episodes that replay my tracks with the gripper never closing (the
+mug stays put) fixed that, and it generalised to a release it never saw: opening mid-carry mostly ends with the
+mug short of the plate. The "on plate" classifier was fixed after wm1's first evaluation (it labelled the last held
+frames, mug already on the plate, as "not on plate"; first numbers 48% / 18%, real 52%). Not used to control the
+robot.
 
 ## How it works
 
