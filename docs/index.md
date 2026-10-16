@@ -2,16 +2,15 @@
 
 Start here. Every other doc is linked from this page. Update the status board at the end of each work unit.
 
-## Status board (2026-10-16 morning)
+## Status board (2026-10-16, submission)
 
-| Area | State | Next action | Owner |
-|---|---|---|---|
-| Brief, research, task (D2) | done | | done |
-| Real takes and replay | 5 takes, 3/5 replay with grasp anchor (D3); take05 cause open | | done |
-| Demo multiplier | clean v3 yield: phone 87%, oracle 97% (D4) | | done |
-| Policies | best: SmolVLA 5k 46%; ACT 36% (5 actions/call); ACT on oracle demos 92% | ACT on 400 clean phone demos, then retimed spike | Claude |
-| Modal | blocked by workspace spend limit | user raises limit for SmolVLA 20k | user |
-| README | draft with results | final figures, review, push | Claude + user |
+| Area | State |
+|---|---|
+| Real takes and replay | 5 takes, 3/5 replay with grasp anchor (D3); raw takes released |
+| Demo multiplier | phone 87-91% yield, scripted 97% (D4); pauses removed (D5) |
+| Policies | ACT 64% (pauses removed, 5 actions/call); SmolVLA 46% / 52% on 200 demos, 0-1% on 400; scripted refs ACT 92%, SmolVLA 84% |
+| World model | wm2 passes 3 of 4 pre-registered tests (docs/spikes.md) |
+| Not finished | still-wrist, release-early, ACT seed repeats |
 
 ## Documents
 

@@ -5,8 +5,10 @@ that recording into robot demonstrations for LIBERO task `libero_90 #72` ("put t
 multiplies them in simulation, and trains policies (ACT and the SmolVLA VLA) on nothing but that data.
 
 **Headline:** ACT trained only on demos from three phone takes puts the mug on the plate in 64% of LIBERO's
-standard episodes. The same recipe on scripted demos reaches 92%, so the remaining gap is in the human-derived
-trajectories; removing my pauses from the takes was the largest single gain (34% to 64%).
+standard episodes (5 actions per call). The same recipe on scripted demos reaches 92%, so the remaining gap is in
+the human-derived trajectories; removing my pauses from the takes was the largest single gain (34% to 64%). A world
+model trained on the same demos predicts the robot's cameras 2 s ahead and, once given no-grasp episodes, imagines
+that the mug moves only while held, including for a release it never saw.
 
 ![phone vs sim](docs/media/take04_phone_vs_sim.gif)
 
@@ -20,7 +22,7 @@ evaluated with `lerobot-eval`. 100 episodes per row unless noted; the 95% interv
 | What | Data | Success |
 |---|---|---|
 | Open-loop replay of each phone take (own layout) | 5 takes | 3/5 takes |
-| Demo multiplier yield (replay at new object positions, kept only if the sim says success) | 3 takes | 60-66% of rollouts |
+| Demo multiplier yield (replay at new object positions, kept only if the sim says success) | 3 takes | 60-66% first settings, 87-91% later |
 | SmolVLA `lerobot/smolvla_libero`, zero-shot (no own data) | none | 2% |
 | ACT, 30k steps, 20 actions per call | 200 demos from 3 takes | 20% |
 | same ACT checkpoint, 5 actions per call | 200 demos from 3 takes | 36% |
@@ -41,8 +43,9 @@ from scratch gives 52%. On the later 400-demo sets (sampled around the mean of L
 around one start state) it scores 0-1%, including after 10k steps: it reaches the mug, presses on it and twists
 the wrist. ACT trains fine on those same sets (34% and 64%), and SmolVLA reaches 84% on scripted demos made with the same
 settings, so the problem is specific to SmolVLA on the 400 demos from my takes. The cause is not found. Another applicant hit the same
-failure and traced it to the human wrist turning more than in LIBERO's demos (`docs/others.md`); a still-wrist
-variant is running.
+failure and traced it to the human wrist turning more than in LIBERO's demos (`docs/others.md`). Not finished
+before the deadline: a still-wrist variant (`tools/retime.py --hold-wrist`), a release-early variant (the 64% ACT's
+failures hover over the plate without letting go; `--release-early`) and two more seeds of the 64% ACT.
 
 **Caveats.** Checkpoints and the number of actions per policy call were chosen on the same 50 start states the
 table reports, so the best rows are slightly optimistic. The 64% ACT is sensitive to this choice: the same
@@ -51,7 +54,7 @@ failure videos, not a measured cause: retiming also made episodes shorter.
 
 The scripted reference shows the ACT recipe can solve this task with this much data, so the gap is in the
 human-derived trajectories. The biggest single fix was removing the pauses: my hand is still 43-65% of the time in
-the takes (scripted: 20%), and a policy trained on that learns to stall. Retiming took ACT from 34% to 64%.
+the takes (scripted: 20%), which I read as teaching the policy to stall. Retiming took ACT from 34% to 64%.
 
 ![ACT training curve](docs/media/act_training_curve.png)
 
@@ -181,6 +184,6 @@ Tests: `.venv/bin/python -m pytest` (geometry, augmentation, Stray loader).
 |---|---|
 | `src/handsim/` | geometry (plane, objects, hand to gripper, real to sim, grasp anchor), sim helpers, demo augmentation |
 | `tools/` | the pipeline steps above, figures, eval |
-| `infra/` | Modal training app and launcher |
+| `infra/` | Modal training app and launcher, world model (`modal_world.py`) |
 | `spikes/` | tests with rules written before running (LIBERO speed, oracle grasps, rim sweep) |
-| `docs/` | brief, decisions (D1-D4), spike results, research notes |
+| `docs/` | brief, decisions (D1-D5), spike results, other submissions compared (`others.md`), research notes |
