@@ -30,7 +30,7 @@ def sample(rng, pick0, place0, radius: float, min_gap: float = 0.16, tries: int 
 
 
 def worker(args) -> list:
-    task_name, trajs, seeds, radius, tmp, around, centre, noise = args
+    task_name, trajs, seeds, radius, tmp, around, centre, noise, keep_failures = args
     from handsim.augment import centred_place_shift, place, rollout, warp
     from handsim.sim import TASKS, make_env, obj_pose
 
@@ -64,7 +64,7 @@ def worker(args) -> list:
             "success": bool(ok),
             "steps": len(frames),
         }
-        if ok:
+        if ok or keep_failures:
             path = Path(tmp) / f"ep_{s:06d}.npz"
             np.savez(path, **{k: np.stack([f[k] for f in frames]) for k in frames[0]})
             row["file"] = str(path)
@@ -96,6 +96,11 @@ def main() -> None:
         "--no-centre", action="store_true", help="keep the human's release point instead of centring"
     )
     ap.add_argument("--noise", type=float, default=0.0, help="DART action noise std (normalised units)")
+    ap.add_argument(
+        "--keep-failures",
+        action="store_true",
+        help="keep every rollout, e.g. no-grasp tracks for the world model",
+    )
     args = ap.parse_args()
     out = Path(args.out)
     tmp = out.parent / (out.name + "_tmp")
@@ -107,9 +112,13 @@ def main() -> None:
     # logged as failed, and the pool is rebuilt
     ctx = mp.get_context("spawn")
     pool = ProcessPoolExecutor(args.workers, mp_context=ctx, max_tasks_per_child=1)
-    while sum(r["success"] for r in rows) < args.n and len(rows) <= 20 * args.n:
-        need = args.n - sum(r["success"] for r in rows)
-        rate = max(0.2, np.mean([r["success"] for r in rows])) if rows else 0.5
+
+    def n_kept() -> int:
+        return sum("file" in r for r in rows)
+
+    while n_kept() < args.n and len(rows) <= 20 * args.n:
+        need = args.n - n_kept()
+        rate = max(0.2, n_kept() / len(rows)) if rows else 0.5
         batch = int(need / rate * 1.1) + args.workers
         seeds = np.arange(next_seed, next_seed + batch).tolist()
         next_seed += batch
@@ -117,7 +126,17 @@ def main() -> None:
         futs = {
             pool.submit(
                 worker,
-                (args.task, trajs, c, args.radius, str(tmp), args.around, not args.no_centre, args.noise),
+                (
+                    args.task,
+                    trajs,
+                    c,
+                    args.radius,
+                    str(tmp),
+                    args.around,
+                    not args.no_centre,
+                    args.noise,
+                    args.keep_failures,
+                ),
             ): c
             for c in chunks
         }
@@ -166,7 +185,7 @@ def main() -> None:
         use_videos=True,
         image_writer_threads=8,
     )
-    kept = [r for r in rows if r["success"]][: args.n]
+    kept = [r for r in rows if "file" in r][: args.n]
     for r in kept:
         ep = np.load(r["file"])
         for i in range(len(ep["action"])):

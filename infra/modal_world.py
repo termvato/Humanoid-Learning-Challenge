@@ -132,7 +132,8 @@ def build(dim: int = 192):
 
 
 @app.function(image=image, gpu="H100", cpu=8.0, memory=65536, timeout=4 * 3600, volumes={"/vol": vol})
-def world(datasets: str, run: str, steps: int = 20000) -> str:
+def world(datasets: str, run: str, steps: int = 20000, load: str = "") -> str:
+    """load: name of an earlier run whose model.pt is reused instead of training."""
     import numpy as np
     import torch
     from diffusers import AutoencoderKL
@@ -179,6 +180,9 @@ def world(datasets: str, run: str, steps: int = 20000) -> str:
     opt = torch.optim.AdamW(wm.parameters(), lr=3e-4, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, 3e-4, total_steps=steps, pct_start=0.05)
     log = []
+    if load:
+        wm.load_state_dict(torch.load(VOL / "wm" / load / "model.pt"))
+        steps = 0
     for it in range(steps):
         zp, zn, acts, tgt = batch(train, 128)
         loss = 0
@@ -197,28 +201,33 @@ def world(datasets: str, run: str, steps: int = 20000) -> str:
             print(log[-1], f"{time.time() - t0:.0f}s", flush=True)
     torch.save(wm.state_dict(), out / "model.pt")
 
-    # mug-on-plate labels from the gripper: from the final release on = on plate (episodes end ~10 steps after)
+    # mug-on-plate labels from the gripper: from the final release on = on plate (episodes end ~10 steps after).
+    # The 20 steps before the release look the same (mug already on the plate, still held): left out (-1).
     def labels(a):
         g = a[:, 6].cpu().numpy()
         opens = np.flatnonzero((g[:-1] > 0) & (g[1:] <= 0))
         y = np.zeros(len(g), np.float32)
         if len(opens):
-            y[opens[-1] + 1 :] = 1
+            r = opens[-1] + 1
+            y[max(r - 20, 0) : r] = -1
+            y[r:] = 1
         return torch.from_numpy(y).to(dev)
 
     Y = [labels(a) for a in A]
     copt = torch.optim.AdamW(done.parameters(), lr=1e-3)
-    for it in range(3000):
+    for it in range(6000):
         ei = np.random.choice(train, 256)
         ti = [np.random.randint(len(Z[i])) for i in ei]
         z = torch.stack([Z[i][t] for i, t in zip(ei, ti)])
         y = torch.stack([Y[i][t] for i, t in zip(ei, ti)])
-        l = torch.nn.functional.binary_cross_entropy_with_logits(done(z), y, pos_weight=torch.tensor(8.0, device=dev))
+        keep = y >= 0
+        l = torch.nn.functional.binary_cross_entropy_with_logits(done(z)[keep], y[keep],
+                                                                 pos_weight=torch.tensor(8.0, device=dev))
         copt.zero_grad()
         l.backward()
         copt.step()
     with torch.no_grad():
-        acc = np.mean([float(((done(Z[i]) > 0).float() == Y[i]).float().mean()) for i in test])
+        acc = np.mean([float(((done(Z[i]) > 0).float() == Y[i])[Y[i] >= 0].float().mean()) for i in test])
         acc_end = np.mean([float(done(Z[i][-1:])[0] > 0) for i in test])  # real last frames: mug on plate
 
     @torch.no_grad()
@@ -247,12 +256,21 @@ def world(datasets: str, run: str, steps: int = 20000) -> str:
                 err[h]["copy"].append(float(((Z[i][t] - Z[i][t + h]) ** 2).mean()))
     horizon = {f"{h / 20:.1f}s": {m: float(np.mean(v)) for m, v in d.items()} for h, d in err.items()}
 
-    # 2. counterfactual: own actions vs the same actions with the gripper never closing
-    cf = {"own": [], "no_grasp": [], "real_end": []}
-    for i in test:
+    # 2. counterfactuals on held-out demos (not the no-grasp episodes): own actions; gripper never closing;
+    # gripper opening halfway through the carry (never in any training episode)
+    def early_release(a):
+        a = a.clone()
+        closed = torch.nonzero(a[:, 6] > 0).flatten()
+        if len(closed):
+            a[int(closed[0] + (closed[-1] - closed[0]) // 2) :, 6] = -1.0
+        return a
+
+    cf = {"own": [], "no_grasp": [], "early_release": [], "real_end": []}
+    demos = [i for i in test if "nograsp" not in eps[i][0]]
+    for i in demos:
         a_no = A[i].clone()
         a_no[:, 6] = -1.0
-        for key, acts in (("own", A[i]), ("no_grasp", a_no)):
+        for key, acts in (("own", A[i]), ("no_grasp", a_no), ("early_release", early_release(A[i]))):
             zs = imagine(i, acts)
             cf[key].append(float(torch.sigmoid(done(zs[-1:]))[0]))
         cf["real_end"].append(float(torch.sigmoid(done(Z[i][-1:]))[0]))
@@ -265,9 +283,9 @@ def world(datasets: str, run: str, steps: int = 20000) -> str:
     import imageio.v3 as iio
 
     @torch.no_grad()
-    def dec(z):  # [N,2,4,16,16] -> [N,128,256,3] uint8, both cameras side by side, upright
+    def dec(z):  # [N,2,4,16,16] -> [N,128,256,3] uint8, both cameras side by side, as LeRobot shows them
         x = vae.decode(z.reshape(-1, 4, 16, 16).half() / 0.18215).sample
-        x = ((x.clamp(-1, 1) + 1) * 127.5).byte().permute(0, 2, 3, 1).cpu().numpy()[:, ::-1, ::-1]
+        x = ((x.clamp(-1, 1) + 1) * 127.5).byte().permute(0, 2, 3, 1).cpu().numpy()
         x = x.reshape(-1, 2, 128, 128, 3)
         return np.concatenate([x[:, 0], x[:, 1]], 2)
 
@@ -277,14 +295,15 @@ def world(datasets: str, run: str, steps: int = 20000) -> str:
         return im
 
     vids = []
-    for n, i in enumerate(test[:4]):
+    for n, i in enumerate(demos[:4]):
         a_no = A[i].clone()
         a_no[:, 6] = -1.0
         real = dec(Z[i][S :: S][: (len(Z[i]) - 1) // S])
-        own, no = dec(imagine(i, A[i])), dec(imagine(i, a_no))
-        m = min(len(real), len(own), len(no))
+        own, no, er = dec(imagine(i, A[i])), dec(imagine(i, a_no)), dec(imagine(i, early_release(A[i])))
+        m = min(len(real), len(own), len(no), len(er))
         fr = [np.concatenate([label(real[k], "real"), label(own[k], "imagined, same actions"),
-                              label(no[k], "imagined, gripper never closes")], 0) for k in range(m)]
+                              label(no[k], "imagined, gripper never closes"),
+                              label(er[k], "imagined, opens mid-carry")], 0) for k in range(m)]
         name = f"rollout_{n}.mp4"
         iio.imwrite(out / name, np.stack(fr), fps=5, codec="libx264", macro_block_size=1)
         vids.append({"file": name, "episode": eps[i][0], "steps": len(Z[i])})
@@ -298,5 +317,5 @@ def world(datasets: str, run: str, steps: int = 20000) -> str:
 
 
 @app.local_entrypoint()
-def main(datasets: str, run: str = "wm1", steps: int = 20000) -> None:
-    print(world.remote(datasets, run, steps))
+def main(datasets: str, run: str = "wm1", steps: int = 20000, load: str = "") -> None:
+    print(world.remote(datasets, run, steps, load))

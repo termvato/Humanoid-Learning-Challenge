@@ -122,3 +122,10 @@ Result wm1_cls2 (same world model, classifier retrained with the 20 pre-release 
 of real final frames "on plate" (was 52%); imagined own actions 70%, gripper never closing 47%. Rule 2 still FAIL:
 the gap between grasping and not grasping is small. The world model predicts motion well (rule 1) but does not
 reliably imagine that an ungrasped mug stays behind; it has never seen an open gripper during a carry.
+
+### Spike: world model with no-grasp episodes (rule written before running)
+wm1 never saw an open gripper during a carry. Add 300 sim episodes that follow the retimed tracks with the gripper
+never closing (`--keep-failures`; the mug stays put), retrain wm1's recipe (wm2), same classifier recipe as
+wm1_cls2. Counterfactuals on held-out normal demos. Rules: own actions end "on plate" 70%+; gripper never closing
+30% or less (now in distribution); gripper opening halfway through the carry 30% or less (in no training episode:
+the real test of "the mug moves only while held").
